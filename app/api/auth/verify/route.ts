@@ -56,6 +56,14 @@ export async function GET(request: Request) {
         maxAge: 3600, // 1 hour
       });
 
+      response.cookies.set("userId", data.data.userId, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 3600, // 1 hour, same as accessToken
+      });
+      console.log("Set userId cookie:", data.data.userId);
+
       if (data.data.refreshToken) {
         response.cookies.set("refreshToken", data.data.refreshToken, {
           httpOnly: true,

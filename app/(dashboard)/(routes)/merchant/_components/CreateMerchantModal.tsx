@@ -45,32 +45,38 @@ export function CreateMerchantModal({ isOpen, onClose, onSuccess }: { isOpen: bo
 
   const handleSubmit = async () => {
     if (!validateForm()) {
-      toast.error( "Please fill in all required fields correctly.");
+      toast.error("Please fill in all required fields correctly.");
       return;
     }
 
     setIsLoading(true);
     try {
       const [contactFirstName, ...contactLastName] = formData.contactName.split(" ");
+      const payload = {
+        organizationName: formData.merchantName,
+        contactFirstName: contactFirstName || "",
+        contactLastName: contactLastName.join(" ") || "",
+        contactEmail: formData.contactEmail,
+        phoneNumber: "",
+        registeredBVN: formData.merchantBVN,
+        businessLogoUrl: "/images/avatar-placeholder.jpg",
+        productPrefix: `MCH-${formData.merchantName.slice(0, 3).toUpperCase()}`,
+        settlementAccountName: formData.accountName,
+        settlementAccountNumber: formData.accountNumber,
+        orgStatus: formData.status,
+      };
+      console.log("Submitting PUT Request to /api/onboard-org:", JSON.stringify(payload, null, 2));
+
       const response = await fetch("/api/onboard-org", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          inviteUserId: "", // Placeholder
-          organizationName: formData.merchantName,
-          contactFirstName: contactFirstName || "",
-          contactLastName: contactLastName.join(" ") || "",
-          contactEmail: formData.contactEmail,
-          phoneNumber: "", // Placeholder
-          registeredBVN: formData.merchantBVN,
-          businessLogoUrl: "/images/avatar-placeholder.jpg", // Placeholder
-          productPrefix: `MCH-${formData.merchantName.slice(0, 3).toUpperCase()}`, // Placeholder
-        }),
+        credentials: "include", // Sends accessToken and userId cookies
+        body: JSON.stringify(payload),
       });
 
-      console.log("API Response Status:", response.status);
+      console.log("API Response Status (PUT):", response.status);
       const data = await response.json();
-      console.log("API Response Body:", JSON.stringify(data, null, 2));
+      console.log("API Response Body (PUT):", JSON.stringify(data, null, 2));
 
       if (response.ok && data.status) {
         toast.success("Merchant created successfully.");
@@ -89,8 +95,10 @@ export function CreateMerchantModal({ isOpen, onClose, onSuccess }: { isOpen: bo
         throw new Error(data.message || `API error: ${response.status}`);
       }
     } catch (err) {
-      console.error("Submit Error:", err);
-      toast.error(err instanceof Error ? err.message : "Failed to create merchant.");
+      console.error("Submit Error (PUT):", err);
+      toast.error(err instanceof Error ? err.message : "Failed to create merchant.", {
+        action: { label: "Log In", onClick: () => (window.location.href = "/login") },
+      });
     } finally {
       setIsLoading(false);
     }
@@ -98,7 +106,7 @@ export function CreateMerchantModal({ isOpen, onClose, onSuccess }: { isOpen: bo
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogOverlay className="backdrop-blur-xs bg-[#140000B2]" />
+      <DialogOverlay className="backdrop-blur-xs bg-[#140000B2] dark:bg-black/50" />
       <DialogContent className="sm:max-w-[571px] rounded-lg shadow-lg p-6">
         <DialogHeader className="border-b pb-4">
           <DialogTitle className="text-lg font-semibold text-gray-900">
@@ -216,7 +224,11 @@ export function CreateMerchantModal({ isOpen, onClose, onSuccess }: { isOpen: bo
           <Button variant="outline" onClick={onClose} className="rounded-md shadow-sm" disabled={isLoading}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} className="bg-red-500 text-white hover:bg-red-600 rounded-md shadow-sm" disabled={isLoading}>
+          <Button
+            onClick={handleSubmit}
+            className="bg-red-500 text-white hover:bg-red-600 rounded-md shadow-sm"
+            disabled={isLoading}
+          >
             {isLoading ? "Submitting..." : "Submit"}
           </Button>
         </DialogFooter>

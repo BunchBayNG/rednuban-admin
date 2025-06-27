@@ -9,15 +9,28 @@ export async function PUT(request: Request) {
 
     const cookieStore = await cookies();
     const accessToken = cookieStore.get("accessToken")?.value;
+    const userId = cookieStore.get("userId")?.value;
     console.log("Retrieved accessToken:", accessToken ? "Present" : "Missing");
+    console.log("Retrieved userId:", userId ? userId : "Missing");
 
     if (!accessToken) {
       console.error("No access token found");
       return NextResponse.json({ error: "Authorization required" }, { status: 401 });
     }
 
+    if (!userId) {
+      console.error("No user ID found in cookies");
+      return NextResponse.json({ error: "User ID required" }, { status: 401 });
+    }
+
     const apiUrl = `https://redcollection.onrender.com/api/v1/users/onboard-org`;
     console.log("External API PUT URL:", apiUrl);
+
+    const payload = {
+      ...body,
+      inviteUserId: userId,
+    };
+    console.log("Sending Payload to External API:", JSON.stringify(payload, null, 2));
 
     const res = await fetch(apiUrl, {
       method: "PUT",
@@ -25,7 +38,7 @@ export async function PUT(request: Request) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(payload),
     });
 
     const data = await res.json();
