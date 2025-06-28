@@ -26,6 +26,7 @@ interface Settlement {
   status: string;
   transactionRef: string;
   reference: string;
+  settlementRef: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -112,6 +113,7 @@ export default function SettlementDetailsModal({
             status: s.status || "",
             transactionRef: s.transactionRef || "",
             reference: s.reference || "",
+            settlementRef: s.settlementRef || "",
             createdAt: s.createdAt
               ? new Date(s.createdAt).toLocaleString("en-US", {
                   day: "2-digit",

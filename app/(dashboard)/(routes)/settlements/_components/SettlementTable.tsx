@@ -48,6 +48,7 @@ interface Settlement {
   status: string;
   transactionRef: string;
   reference: string;
+  settlementRef: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -109,7 +110,9 @@ export function SettlementTable() {
 
       const queryString = new URLSearchParams(params).toString();
       console.log("Frontend GET Request URL:", `/api/reports/settlements?${queryString}`);
-      const res = await fetch(`/api/reports/settlements?${queryString}`);
+      const res = await fetch(`/api/reports/settlements?${queryString}`, {
+        credentials: "include", // Include accessToken cookie
+      });
       if (!res.ok) {
         if (res.status === 404) {
           throw new Error("API route not found. Please check server configuration.");
@@ -136,6 +139,7 @@ export function SettlementTable() {
           status: s.status || "",
           transactionRef: s.transactionRef || "",
           reference: s.reference || "",
+          settlementRef: s.settlementRef || "",
           createdAt: s.createdAt
             ? new Date(s.createdAt).toLocaleString("en-US", {
                 day: "2-digit",
@@ -475,6 +479,7 @@ export function SettlementTable() {
           <TableHeader className="bg-[#F5F5F5] dark:bg-background">
             <TableRow>
               <TableHead>S/N</TableHead>
+              <TableHead>Settlement Refs</TableHead>
               <TableHead>Merchant</TableHead>
               <TableHead>Source Account</TableHead>
               <TableHead>Destination Account</TableHead>
@@ -487,7 +492,7 @@ export function SettlementTable() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={8}>
+                <TableCell colSpan={9}>
                   <div className="relative w-17 p-4 h-17 mx-auto my-5">
                     <div className="absolute inset-0 border-4 border-transparent border-t-[#C80000] rounded-full animate-spin"></div>
                     <div className="absolute inset-0 flex items-center m-3 justify-center">
@@ -500,6 +505,7 @@ export function SettlementTable() {
               settlements.map((item) => (
                 <TableRow key={item.sN}>
                   <TableCell>{item.sN}</TableCell>
+                  <TableCell>{item.settlementRef}</TableCell>
                   <TableCell className="flex items-center space-x-2">
                     <Avatar>
                       <AvatarImage src="https://via.placeholder.com/100" alt={item.merchantName} />
@@ -516,7 +522,7 @@ export function SettlementTable() {
                         className="w-2 h-2 rounded-full mr-2"
                         style={{
                           backgroundColor:
-                            item.status === "Successful"
+                            item.status === "SUCCESS"
                               ? "#4CAF50"
                               : item.status === "Processing"
                               ? "#FF8C00"
@@ -526,7 +532,7 @@ export function SettlementTable() {
                       <span
                         style={{
                           color:
-                            item.status === "Successful"
+                            item.status === "SUCCESS"
                               ? "#4CAF50"
                               : item.status === "Processing"
                               ? "#FF8C00"
@@ -559,7 +565,7 @@ export function SettlementTable() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={8}>
+                <TableCell colSpan={9}>
                   <div className="text-center flex flex-col items-center gap-4 m-3 p-3">
                     <Empty />
                     <p className="text-muted-foreground">No settlements found</p>
