@@ -11,24 +11,32 @@ import { MerchantUsersTable } from "../../_components/MerchantUsersTable";
 import { MerchantStaffsTable } from "../../_components/MerchantStaffTable";
 import Loading from "@/components/Loading";
 
-export default function MerchantProfilePage({ params }: { params: { id: string } }) {
+// Define PageProps type for dynamic routes
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default function MerchantProfilePage({ params }: PageProps) {
   const router = useRouter();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [merchant, setMerchant] = useState<any>(null);
+  const [merchant, setMerchant] = useState<any>(null); // Consider defining a specific Merchant type
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchMerchant = async () => {
+      // Resolve params Promise
+      const { id } = await params;
       setIsLoading(true);
       setError(null);
-      console.log("Fetching merchant with ID:", params.id);
+      console.log("Fetching merchant with ID:", id);
 
       try {
         const response = await fetch(
           `/api/reports/organizations?page=0&size=100&sortBy=createdAt&sortOrder=ASC`,
           {
             headers: { "Content-Type": "application/json" },
+            credentials: "include", // Include accessToken cookie
           }
         );
         console.log("API Response Status:", response.status);
@@ -37,7 +45,7 @@ export default function MerchantProfilePage({ params }: { params: { id: string }
 
         if (response.ok && data.status && data.data.content.length > 0) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const item = data.data.content.find((m: any) => m.id === params.id);
+          const item = data.data.content.find((m: any) => m.id === id);
           if (item) {
             const mappedMerchant = {
               sN: item.id,
@@ -57,7 +65,7 @@ export default function MerchantProfilePage({ params }: { params: { id: string }
             setMerchant(mappedMerchant);
           } else {
             setError("No merchant found for this ID");
-            console.log("No matching merchant:", params.id);
+            console.log("No matching merchant:", id);
           }
         } else {
           setError(data.detail || data.error || `API error: ${response.status}`);
@@ -72,13 +80,13 @@ export default function MerchantProfilePage({ params }: { params: { id: string }
     };
 
     fetchMerchant();
-  }, [params.id]);
+  }, [params]);
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
-     <Loading/>
-     </div>
+        <Loading />
+      </div>
     );
   }
 
