@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     const queryParams = {
       page: params.page || "0",
       size: params.size || "10",
-      sortBy: params.sortBy || "createdAt",
+      sortBy: params.sortBy || "provisionDate",
       sortOrder: params.sortOrder || "asc",
       search: params.search || "",
       status: params.status || "",

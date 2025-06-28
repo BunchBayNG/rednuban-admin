@@ -48,7 +48,7 @@ interface VNUBAN {
   status: string;
   productType: string;
   customerReference: string;
-  createdAt: string;
+  provisionDate: string;
   updatedAt: string;
 }
 
@@ -75,7 +75,7 @@ export function VNUBANTable() {
     endDate: "",
     status: "",
     search: "",
-    sortBy: "createdAt",
+    sortBy: "provisionDate",
     sortOrder: "asc",
   });
   const [vnubans, setVNUBANs] = useState<VNUBAN[]>([]);
@@ -92,7 +92,7 @@ export function VNUBANTable() {
       const params: Record<string, string> = {
         page: currentPage.toString(),
         size: "10",
-        sortBy: filter.sortBy || "createdAt",
+        sortBy: filter.sortBy || "provisionDate",
         sortOrder: filter.sortOrder || "asc",
       };
       if (filter.search) params.search = filter.search;
@@ -120,8 +120,8 @@ export function VNUBANTable() {
           status: v.status || "",
           productType: v.productType || "",
           customerReference: v.customerReference || "",
-          createdAt: v.createdAt
-            ? new Date(v.createdAt).toLocaleString("en-US", {
+          provisionDate: v.provisionDate
+            ? new Date(v.provisionDate).toLocaleString("en-US", {
                 day: "2-digit",
                 month: "short",
                 year: "numeric",
@@ -176,14 +176,14 @@ export function VNUBANTable() {
   const handleResetDate = () => setFilter((prev) => ({ ...prev, startDate: "", endDate: "" }));
   const handleResetSearch = () => setFilter((prev) => ({ ...prev, search: "" }));
   const handleResetStatus = () => setFilter((prev) => ({ ...prev, status: "" }));
-  const handleResetSort = () => setFilter((prev) => ({ ...prev, sortBy: "createdAt", sortOrder: "asc" }));
+  const handleResetSort = () => setFilter((prev) => ({ ...prev, sortBy: "provisionDate", sortOrder: "asc" }));
   const handleResetAll = () =>
     setFilter({
       startDate: "",
       endDate: "",
       status: "",
       search: "",
-      sortBy: "createdAt",
+      sortBy: "provisionDate",
       sortOrder: "asc",
     });
 
@@ -351,8 +351,8 @@ export function VNUBANTable() {
                       <SelectValue placeholder="Sort By" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="createdAt">Created At (Asc)</SelectItem>
-                      <SelectItem value="createdAtDesc">Created At (Desc)</SelectItem>
+                      <SelectItem value="provisionDate">Created At (Asc)</SelectItem>
+                      <SelectItem value="provisionDateDesc">Created At (Desc)</SelectItem>
                       <SelectItem value="accountName">Account Name (Asc)</SelectItem>
                       <SelectItem value="accountNameDesc">Account Name (Desc)</SelectItem>
                       <SelectItem value="status">Status (Asc)</SelectItem>
@@ -477,12 +477,12 @@ export function VNUBANTable() {
                       <span
                         className="w-2 h-2 rounded-full mr-2"
                         style={{
-                          backgroundColor: item.status === "Active" ? "#4CAF50" : "#FF4444",
+                          backgroundColor: item.status === "ACTIVE" ? "#4CAF50" : "#FF4444",
                         }}
                       />
                       <span
                         style={{
-                          color: item.status === "Active" ? "#4CAF50" : "#FF4444",
+                          color: item.status === "ACTIVE" ? "#4CAF50" : "#FF4444",
                         }}
                       >
                         {item.status}
@@ -491,7 +491,7 @@ export function VNUBANTable() {
                   </TableCell>
                   <TableCell>{item.productType}</TableCell>
                   <TableCell>{item.customerReference}</TableCell>
-                  <TableCell>{item.createdAt}</TableCell>
+                  <TableCell>{item.provisionDate}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

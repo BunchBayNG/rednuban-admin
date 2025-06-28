@@ -27,7 +27,7 @@ interface VNUBAN {
   status: string;
   productType: string;
   customerReference: string;
-  createdAt: string;
+  provisionDate: string;
   updatedAt: string;
 }
 
@@ -72,7 +72,7 @@ export default function VNUBANDetailsModal({
       const params: Record<string, string> = {
         page: Math.floor(index / 10).toString(),
         size: "10",
-        sortBy: filters.sortBy || "createdAt",
+        sortBy: filters.sortBy || "provisionDate",
         sortOrder: filters.sortOrder || "asc",
       };
       if (filters.search) params.search = filters.search;
@@ -101,8 +101,8 @@ export default function VNUBANDetailsModal({
             status: vnuban.status || "",
             productType: vnuban.productType || "",
             customerReference: vnuban.customerReference || "",
-            createdAt: vnuban.createdAt
-              ? new Date(vnuban.createdAt).toLocaleString("en-US", {
+            provisionDate: vnuban.provisionDate
+              ? new Date(vnuban.provisionDate).toLocaleString("en-US", {
                   day: "2-digit",
                   month: "short",
                   year: "numeric",
@@ -299,7 +299,7 @@ export default function VNUBANDetailsModal({
               </div>
               <div className="flex flex-col gap-2">
                 <span className="text-xs text-gray-500">Created At</span>
-                <span>{vNUBAN.createdAt} WAT</span>
+                <span>{vNUBAN.provisionDate} WAT</span>
               </div>
             </div>
           </div>
@@ -336,7 +336,7 @@ export default function VNUBANDetailsModal({
                         hour: "2-digit",
                         minute: "2-digit",
                       })
-                    : vNUBAN.createdAt}{" "}
+                    : vNUBAN.provisionDate}{" "}
                   WAT
                 </span>
               </span>
