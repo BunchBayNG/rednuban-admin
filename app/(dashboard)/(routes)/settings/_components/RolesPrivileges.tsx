@@ -29,7 +29,8 @@ import { TbEdit } from "react-icons/tb";
 import { TbTrash } from "react-icons/tb";
 import { ExportModal } from "../../dashboard/_components/ExportModal";
 import { LuUserPlus } from "react-icons/lu";
-import { AddRoleModal } from "./AddRoleModal"; // Adjust the import path as needed
+import { AddRoleModal } from "./AddRoleModal";
+import RolesPrivilegesDetailsModal from "./RolesPrivilegesDetailsModal"; // Adjust the import path as needed
 
 export default function RolesPrivileges() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -39,22 +40,22 @@ export default function RolesPrivileges() {
     toDate: undefined as Date | undefined,
     sortBy: "default",
   });
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false); // State for export modal
-  const [isAddRoleModalOpen, setIsAddRoleModalOpen] = useState(false); // State for add role modal
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isAddRoleModalOpen, setIsAddRoleModalOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<{ id: number; name: string; description: string; createdAt: string; assignedMembers: string[]; lastModifiedBy: string; permissions: string[] } | null>(null);
   const itemsPerPage = 10;
   const roles = [
-    { id: 1, name: "Super Admin", description: "Can perform all activities", createdAt: "25/06/04-03:17:7PM" },
-    { id: 2, name: "Merchant Access Authorizer", description: "Collections & Remittance Support - Can approve merchant and user creation", createdAt: "25/06/04-03:17:7PM" },
-    { id: 3, name: "Collections Team Member", description: "Corporate Collections - Can view and export information pertaining to users, merchants and transactions", createdAt: "25/06/04-03:17:7PM" },
-    { id: 4, name: "Bank Operations Support", description: "Transaction Banking Support - Can execute 1st level operational support and investigations on internal and external and...", createdAt: "25/06/04-03:17:7PM" },
-    { id: 5, name: "Merchants Access Initiator", description: "Collections & Remittance Support - Can create external merchants (customers)", createdAt: "25/06/04-03:17:7PM" },
-    { id: 6, name: "User Access Initiator", description: "User Access Management - Can control creation of internal users (admins)", createdAt: "25/06/04-03:17:7PM" },
-    { id: 7, name: "User Access Authorizer", description: "User Access Management - Can view and export information pertaining to users, merchants and transactions", createdAt: "25/06/04-03:17:7PM" },
-    { id: 8, name: "Bank Auditor", description: "IT Digital Banking Audit & Assurance - Can audit and conduct forensic operations", createdAt: "25/06/04-03:17:7PM" },
+    { id: 1, name: "Super Admin", description: "Can perform all activities", createdAt: "06/07/2025 06:50 AM WAT", assignedMembers: ["Felix Babatunde Adebayo", "Uchenna Mbakka Chibueze", "Janine Felicia", "Justina Janice"], lastModifiedBy: "Felix Babatunde Adebayo", permissions: ["All permissions in user management", "All permissions in merchant management", "All permissions in transaction management", "All permissions in payout management", "All permissions in settlement management", "All permissions in api management", "All permissions in audit & reporting management", "All permissions in settings & configuration management", "All permissions in system administration management"] },
+    { id: 2, name: "Merchant Access Authorizer", description: "Collections & Remittance Support - Can approve merchant and user creation", createdAt: "25/06/04-03:17:7PM", assignedMembers: [], lastModifiedBy: "N/A", permissions: ["Approve merchant creation", "Approve user creation"] },
+    { id: 3, name: "Collections Team Member", description: "Corporate Collections - Can view and export information pertaining to users, merchants and transactions", createdAt: "25/06/04-03:17:7PM", assignedMembers: [], lastModifiedBy: "N/A", permissions: ["View user info", "View merchant info", "View transaction info", "Export data"] },
+    { id: 4, name: "Bank Operations Support", description: "Transaction Banking Support - Can execute 1st level operational support and investigations on internal and external and...", createdAt: "25/06/04-03:17:7PM", assignedMembers: [], lastModifiedBy: "N/A", permissions: ["1st level support", "Investigations"] },
+    { id: 5, name: "Merchants Access Initiator", description: "Collections & Remittance Support - Can create external merchants (customers)", createdAt: "25/06/04-03:17:7PM", assignedMembers: [], lastModifiedBy: "N/A", permissions: ["Create external merchants"] },
+    { id: 6, name: "User Access Initiator", description: "User Access Management - Can control creation of internal users (admins)", createdAt: "25/06/04-03:17:7PM", assignedMembers: [], lastModifiedBy: "N/A", permissions: ["Create internal users"] },
+    { id: 7, name: "User Access Authorizer", description: "User Access Management - Can view and export information pertaining to users, merchants and transactions", createdAt: "25/06/04-03:17:7PM", assignedMembers: [], lastModifiedBy: "N/A", permissions: ["View user info", "View merchant info", "View transaction info", "Export data"] },
+    { id: 8, name: "Bank Auditor", description: "IT Digital Banking Audit & Assurance - Can audit and conduct forensic operations", createdAt: "25/06/04-03:17:7PM", assignedMembers: [], lastModifiedBy: "N/A", permissions: ["Audit operations", "Forensic operations"] },
   ];
 
-
-  // Filter data
   const filteredRoles = roles.filter((role) => {
     const matchesSearch =
       role.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -65,7 +66,6 @@ export default function RolesPrivileges() {
     return matchesSearch && matchesDate;
   });
 
-  // Sort data
   const sortedRoles = [...filteredRoles].sort((a, b) => {
     switch (filter.sortBy) {
       case "a-z":
@@ -81,7 +81,6 @@ export default function RolesPrivileges() {
     }
   });
 
-  // Pagination
   const totalPages = Math.ceil(sortedRoles.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
@@ -178,24 +177,27 @@ export default function RolesPrivileges() {
     { label: "Role Name", value: "name" },
     { label: "Description", value: "description" },
     { label: "Created At", value: "createdAt" },
+    { label: "Assigned Members", value: "assignedMembers" },
+    { label: "Last Modified By", value: "lastModifiedBy" },
+    { label: "Permissions", value: "permissions" },
   ];
 
-  interface RoleData {
-    id: number;
-    name: string;
-    description: string;
-    createdAt: string;
-  }
-
   const handleAddRoleSubmit = (role: { name: string; description: string; permissions: string[] }) => {
-    const roleData: RoleData = {
-      id: roles.length + 1, // Generate a new ID
+    const roleData = {
+      id: roles.length + 1,
       name: role.name,
       description: role.description,
-      createdAt: new Date().toLocaleString(), // Add a createdAt timestamp
+      createdAt: new Date().toLocaleString(),
+      assignedMembers: [],
+      lastModifiedBy: "N/A",
+      permissions: role.permissions,
     };
     console.log("New Role Submitted:", roleData);
-    // Add logic to handle the new role (e.g., update roles array)
+  };
+
+  const handleViewRole = (role: { id: number; name: string; description: string; createdAt: string; assignedMembers: string[]; lastModifiedBy: string; permissions: string[] }) => {
+    setSelectedRole(role);
+    setIsDetailsModalOpen(true);
   };
 
   return (
@@ -286,8 +288,8 @@ export default function RolesPrivileges() {
           </div>
         </div>
         <div className="flex space-x-2">
-          <Button variant="outline" onClick={() => setIsAddRoleModalOpen(true)}>Add Role <LuUserPlus className="h-4 w-4 "/></Button>
-          <Button onClick={() => setIsExportModalOpen(true)}>Export  <Download className="h-4 w-4 " /></Button>
+          <Button variant="outline" onClick={() => setIsAddRoleModalOpen(true)}>Add Role <LuUserPlus className="h-4 w-4" /></Button>
+          <Button onClick={() => setIsExportModalOpen(true)}>Export <Download className="h-4 w-4" /></Button>
         </div>
       </div>
       <Table>
@@ -315,9 +317,9 @@ export default function RolesPrivileges() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuItem><FiEye className="text-[]"/>View Role</DropdownMenuItem>
-                    <DropdownMenuItem><TbEdit className="text-[]"/>Edit Role</DropdownMenuItem>
-                    <DropdownMenuItem className="text-[#FF0606]"><TbTrash className="text-[]"/>Delete Role</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleViewRole(role)}><FiEye className="text-[]" />View Role</DropdownMenuItem>
+                    <DropdownMenuItem><TbEdit className="text-[]" />Edit Role</DropdownMenuItem>
+                    <DropdownMenuItem className="text-[#FF0606]"><TbTrash className="text-[]" />Delete Role</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -387,6 +389,13 @@ export default function RolesPrivileges() {
         isOpen={isAddRoleModalOpen}
         onClose={() => setIsAddRoleModalOpen(false)}
         onSubmit={handleAddRoleSubmit}
+      />
+      <RolesPrivilegesDetailsModal
+        isOpen={isDetailsModalOpen}
+        onClose={() => setIsDetailsModalOpen(false)}
+        role={selectedRole}
+        setSelectedRole={setSelectedRole}
+        roles={roles}
       />
     </div>
   );
