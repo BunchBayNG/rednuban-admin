@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogOverlay } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { X } from "lucide-react";
+
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function AddThirdPartyModal({ isOpen, onClose, onAdd }: { isOpen: boolean; onClose: () => void; onAdd: (party: any) => void }) {
@@ -44,9 +44,6 @@ export default function AddThirdPartyModal({ isOpen, onClose, onAdd }: { isOpen:
               <DialogTitle className="text-sm font-bold text-gray-900 dark:text-gray-100">Add New Third Party</DialogTitle>
               <DialogDescription className="text-xs text-[#A5A5A5] ">Fill the form to add a new third party</DialogDescription>
             </div>
-            <Button variant="ghost" className="p-2 h-auto" onClick={onClose}>
-              <X className="h-6 w-6 text-gray-500 dark:text-gray-400" />
-            </Button>
           </div>
         </DialogHeader>
         <form onSubmit={handleSubmit} id="add-third-party-form" className="space-y-6 ">
