@@ -130,7 +130,7 @@ export function ExportModal({ isOpen, onClose, onExport, fieldOptions }: ExportM
           {/* Format Selection and Export Button */}
           <div className="flex justify-between items-center">
             <div className="flex gap-2 border p-1 rounded-md ">
-              {["CSV", "Excel"].map((fmt) => (
+              {["CSV","PDF", "Excel"].map((fmt) => (
                 <Button
                   key={fmt}
                   variant={format === fmt ? "outline" : "ghost"}
