@@ -562,7 +562,7 @@ export function TransactionTable() {
                         className="w-2 h-2 rounded-full mr-2"
                         style={{
                           backgroundColor:
-                            item.status === "Successful"
+                            item.status === "SUCCESS"
                               ? "#4CAF50"
                               : item.status === "Pending"
                               ? "#FF8C00"
@@ -572,7 +572,7 @@ export function TransactionTable() {
                       <span
                         style={{
                           color:
-                            item.status === "Successful"
+                            item.status === "SUCCESS"
                               ? "#4CAF50"
                               : item.status === "Pending"
                               ? "#FF8C00"
