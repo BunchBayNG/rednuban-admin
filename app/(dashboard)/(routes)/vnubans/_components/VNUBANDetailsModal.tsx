@@ -22,10 +22,10 @@ interface VNUBAN {
   merchantName: string;
   merchantOrgId: string;
   vnuban: string;
-  accountName: string | number;
+  accountName: string;
   vnubanType: string;
   status: string;
-  productType: string;
+  productType: string | null;
   customerReference: string;
   provisionDate: string;
   updatedAt: string;
@@ -35,7 +35,7 @@ interface VNUBANDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   vNUBAN: VNUBAN | null;
-  setSelectedVNUBAN: (vNUBAN: VNUBAN | null) => void;
+  setSelectedVNUBAN: React.Dispatch<React.SetStateAction<VNUBAN | null>>;
   currentPage: number;
   totalElements: number;
   filters: {
@@ -63,7 +63,7 @@ export default function VNUBANDetailsModal({
 
   const getInitials = (name: string) => {
     const names = name.split(" ");
-    return names.length > 1 ? names[0][0] + names[names.length - 1][0] : names[0][0];
+    return names.length > 1 ? names[0][0] + names[names.length - 1][0] : names[0][0] || "";
   };
 
   const fetchVNUBAN = async (index: number) => {
@@ -82,25 +82,28 @@ export default function VNUBANDetailsModal({
       if (filters.status) params.status = filters.status;
 
       const queryString = new URLSearchParams(params).toString();
+      console.log("Fetching vNUBAN URL:", `/api/reports/vnubans?${queryString}`);
       const res = await fetch(`/api/reports/vnubans?${queryString}`, {
         headers: { "Content-Type": "application/json" },
       });
       const data = await res.json();
+      console.log("Fetch vNUBAN Response:", JSON.stringify(data, null, 2));
+
       if (res.ok && data.status) {
         const vnubanIndex = index % 10;
         const vnuban = data.data.content[vnubanIndex];
         if (vnuban) {
-          return {
+          const mapped = {
             sN: index + 1,
             id: vnuban.id || 0,
             merchantName: vnuban.merchantName || "",
             merchantOrgId: vnuban.merchantOrgId || "",
-            vnuban: vnuban.vnuban || "",
-            accountName: vnuban.accountName || "",
-            vnubanType: vnuban.vnubanType || "",
+            vnuban: String(vnuban.accountNo || ""),
+            accountName: String(vnuban.accountName || ""),
+            vnubanType: vnuban.mode || "",
             status: vnuban.status || "",
-            productType: vnuban.productType || "",
-            customerReference: vnuban.customerReference || "",
+            productType: vnuban.productType || null,
+            customerReference: String(vnuban.initiatorRef || ""),
             provisionDate: vnuban.provisionDate
               ? new Date(vnuban.provisionDate).toLocaleString("en-US", {
                   day: "2-digit",
@@ -112,6 +115,8 @@ export default function VNUBANDetailsModal({
               : "",
             updatedAt: vnuban.updatedAt || "",
           };
+          console.log("Raw vNUBAN:", vnuban, "Mapped vNUBAN:", mapped);
+          return mapped;
         }
       }
       throw new Error("vNUBAN not found");
@@ -127,7 +132,6 @@ export default function VNUBANDetailsModal({
   const handleExportDetails = async () => {
     setLoading(true);
     try {
-      // Placeholder API (not in docs)
       console.warn("Using undocumented /api/export-vnuban endpoint");
       const res = await fetch(`/api/export-vnuban?id=${vNUBAN.id}`, {
         method: "GET",
@@ -144,7 +148,7 @@ export default function VNUBANDetailsModal({
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `vnuban_${vNUBAN.vnuban}.csv`;
+      a.download = `vnuban_${vNUBAN.vnuban || "unknown"}.csv`;
       a.click();
       window.URL.revokeObjectURL(url);
       toast.success("Export successful! Check your downloads.");
@@ -161,7 +165,6 @@ export default function VNUBANDetailsModal({
   const handleStatusChange = async (newStatus: "Active" | "Inactive") => {
     setLoading(true);
     try {
-      // Placeholder API (not in docs)
       console.warn("Using undocumented /api/vnuban/status endpoint");
       const res = await fetch(`/api/vnuban/status`, {
         method: "PATCH",
@@ -229,7 +232,7 @@ export default function VNUBANDetailsModal({
           </div>
           <div className="flex justify-between border-b border-[#F8F8F8] dark:border-[#2A2A2A] py-3">
             <span className="text-red-500 font-medium text-sm">
-              vNUBAN: <span className="text-primary text-sm font-light">{vNUBAN.vnuban}</span>
+              vNUBAN: <span className="text-primary text-sm font-light">{vNUBAN.vnuban || "N/A"}</span>
             </span>
             <div className="flex space-x-2">
               <Button variant="ghost" size="icon" onClick={handlePrev} disabled={!prevVNUBAN || loading}>
@@ -250,7 +253,7 @@ export default function VNUBANDetailsModal({
                   <AvatarFallback>{getInitials(vNUBAN.merchantName)}</AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-medium text-sm">{vNUBAN.merchantName}</p>
+                  <p className="font-medium text-sm">{vNUBAN.merchantName || "N/A"}</p>
                   <p className="text-xs text-gray-500">{vNUBAN.merchantOrgId || "N/A"}</p>
                 </div>
               </div>
@@ -263,7 +266,7 @@ export default function VNUBANDetailsModal({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    {vNUBAN.status === "Active" ? (
+                    {vNUBAN.status === "ACTIVE" ? (
                       <>
                         <DropdownMenuItem onClick={() => handleStatusChange("Inactive")}>
                           <Deactivate /> Deactivate
@@ -289,17 +292,17 @@ export default function VNUBANDetailsModal({
             <div className="flex justify-between text-sm border-b border-[#F8F8F8] dark:border-[#2A2A2A] pb-1">
               <div className="flex flex-col gap-2">
                 <span className="text-xs text-gray-500">Account Name</span>
-                <span>{typeof vNUBAN.accountName === "number" ? vNUBAN.accountName.toString() : vNUBAN.accountName}</span>
+                <span>{vNUBAN.accountName || "N/A"}</span>
               </div>
               <div className="flex flex-col gap-2">
                 <span className="text-xs text-gray-500">Status</span>
-                <span style={{ color: vNUBAN.status === "Active" ? "#4CAF50" : "#FF4444" }}>
-                  {vNUBAN.status}
+                <span style={{ color: vNUBAN.status === "ACTIVE" ? "#4CAF50" : "#FF4444" }}>
+                  {vNUBAN.status || "N/A"}
                 </span>
               </div>
               <div className="flex flex-col gap-2">
                 <span className="text-xs text-gray-500">Created At</span>
-                <span>{vNUBAN.provisionDate} WAT</span>
+                <span>{vNUBAN.provisionDate || "N/A"} WAT</span>
               </div>
             </div>
           </div>
@@ -313,11 +316,11 @@ export default function VNUBANDetailsModal({
               </span>
               <span className="flex gap-2 border-b border-[#F8F8F8] dark:border-[#2A2A2A] pb-2">
                 <p className="font-medium">Customer Reference:</p>
-                <span>{vNUBAN.customerReference}</span>
+                <span>{vNUBAN.customerReference || "N/A"}</span>
               </span>
               <span className="flex gap-2 border-b border-[#F8F8F8] dark:border-[#2A2A2A] pb-2">
                 <p className="font-medium">Product Type:</p>
-                <span>{vNUBAN.productType}</span>
+                <span>{vNUBAN.productType || "N/A"}</span>
               </span>
             </div>
           </div>
@@ -336,7 +339,7 @@ export default function VNUBANDetailsModal({
                         hour: "2-digit",
                         minute: "2-digit",
                       })
-                    : vNUBAN.provisionDate}{" "}
+                    : vNUBAN.provisionDate || "N/A"}{" "}
                   WAT
                 </span>
               </span>

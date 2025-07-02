@@ -43,10 +43,10 @@ interface VNUBAN {
   merchantName: string;
   merchantOrgId: string;
   vnuban: string;
-  accountName: string | number; // Handle API discrepancy
+  accountName: string;
   vnubanType: string;
   status: string;
-  productType: string;
+  productType: string | null;
   customerReference: string;
   provisionDate: string;
   updatedAt: string;
@@ -108,29 +108,33 @@ export function VNUBANTable() {
       console.log("API Response:", JSON.stringify(data, null, 2));
 
       if (res.ok && data.status) {
-         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const mappedVNUBANs = data.data.content.map((v: any, index: number) => ({
-          sN: data.data.number * 10 + index + 1,
-          id: v.id || 0,
-          merchantName: v.merchantName || "",
-          merchantOrgId: v.merchantOrgId || "",
-          vnuban: v.vnuban || "",
-          accountName: v.accountName || "",
-          vnubanType: v.vnubanType || "",
-          status: v.status || "",
-          productType: v.productType || "",
-          customerReference: v.customerReference || "",
-          provisionDate: v.provisionDate
-            ? new Date(v.provisionDate).toLocaleString("en-US", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })
-            : "",
-          updatedAt: v.updatedAt || "",
-        }));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const mappedVNUBANs = data.data.content.map((v: any, index: number) => {
+          const mapped = {
+            sN: data.data.number * 10 + index + 1,
+            id: v.id || 0,
+            merchantName: v.merchantName || "",
+            merchantOrgId: v.merchantOrgId || "",
+            vnuban: String(v.accountNo || ""),
+            accountName: String(v.accountName || ""),
+            vnubanType: v.mode || "", // Use mode for vnubanType
+            status: v.status || "",
+            productType: v.productType || null,
+            customerReference: String(v.initiatorRef || ""),
+            provisionDate: v.provisionDate
+              ? new Date(v.provisionDate).toLocaleString("en-US", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "",
+            updatedAt: v.updatedAt || "",
+          };
+          console.log("Raw VNUBAN:", v, "Mapped VNUBAN:", mapped);
+          return mapped;
+        });
         setVNUBANs(mappedVNUBANs);
         setTotalPages(data.data.totalPages);
         setTotalElements(data.data.totalElements);
@@ -170,7 +174,7 @@ export function VNUBANTable() {
 
   const getInitials = (name: string) => {
     const names = name.split(" ");
-    return names.length > 1 ? names[0][0] + names[names.length - 1][0] : names[0][0];
+    return names.length > 1 ? names[0][0] + names[names.length - 1][0] : names[0][0] || "";
   };
 
   const handleResetDate = () => setFilter((prev) => ({ ...prev, startDate: "", endDate: "" }));
@@ -468,10 +472,10 @@ export function VNUBANTable() {
                       <AvatarImage src="/images/avatar-placeholder.jpg" alt="Merchant Avatar" />
                       <AvatarFallback>{getInitials(item.merchantName)}</AvatarFallback>
                     </Avatar>
-                    <span>{item.merchantName}</span>
+                    <span>{item.merchantName || "N/A"}</span>
                   </TableCell>
-                  <TableCell>{item.vnuban}</TableCell>
-                  <TableCell>{typeof item.accountName === "number" ? item.accountName.toString() : item.accountName}</TableCell>
+                  <TableCell>{item.vnuban || "N/A"}</TableCell>
+                  <TableCell>{item.accountName || "N/A"}</TableCell>
                   <TableCell>
                     <span className="flex items-center">
                       <span
@@ -485,13 +489,13 @@ export function VNUBANTable() {
                           color: item.status === "ACTIVE" ? "#4CAF50" : "#FF4444",
                         }}
                       >
-                        {item.status}
+                        {item.status || "N/A"}
                       </span>
                     </span>
                   </TableCell>
-                  <TableCell>{item.productType}</TableCell>
-                  <TableCell>{item.customerReference}</TableCell>
-                  <TableCell>{item.provisionDate}</TableCell>
+                  <TableCell>{item.productType || "N/A"}</TableCell>
+                  <TableCell>{item.customerReference || "N/A"}</TableCell>
+                  <TableCell>{item.provisionDate || "N/A"}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
