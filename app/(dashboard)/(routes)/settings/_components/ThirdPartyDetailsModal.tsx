@@ -10,9 +10,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { Toaster, toast } from "sonner";
+import { toast } from "sonner";
 import Download from "@/components/svg Icons/Download";
-import {  TbTrash } from "react-icons/tb";
+import {  TbEdit, TbTrash } from "react-icons/tb";
 
 interface ThirdParty {
   id: number;
@@ -63,10 +63,10 @@ export default function ThirdPartyDetailsModal({
     }
   };
 
-  const handleEdit = () => {
-    toast.success(`Edit initiated for ${thirdParty.name}`);
-    console.log(`Edit attempted for Third Party ID ${thirdParty.id}`);
-  };
+  // const handleEdit = () => {
+  //   toast.success(`Edit initiated for ${thirdParty.name}`);
+  //   console.log(`Edit attempted for Third Party ID ${thirdParty.id}`);
+  // };
 
   const handleDelete = () => {
     toast.error(`Delete initiated for ${thirdParty.name}`);
@@ -128,7 +128,7 @@ export default function ThirdPartyDetailsModal({
           </div>
           {/* Summary Section */}
           <div className="space-y-4 py-3">
-            <h3 className="text-xs text-gray-500">Summary Section</h3>
+            <h3 className="text-xs text-gray-500">Summary </h3>
             <div className="flex items-center justify-between space-x-1 pb-5 border-b border-[#F8F8F8] dark:border-[#2A2A2A]">
               <div className="flex items-center gap-2">
                 <Avatar className="w-13 h-13">
@@ -141,7 +141,7 @@ export default function ThirdPartyDetailsModal({
                 </div>
               </div>
               <div className="flex gap-3 items-center">
-                <Button className="hover:bg-red-600 ml-auto" onClick={handleEdit}>Edit Third Party</Button>
+                <Button className="hover:bg-red-600 ml-auto" ><TbEdit/> Edit Third Party</Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="bg-[#F5F5F5] dark:bg-card rounded-sm">
@@ -149,17 +149,18 @@ export default function ThirdPartyDetailsModal({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuItem onClick={handleExportDetails}>
-                      <Download /> Export Details
-                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleDelete} className="text-[#FF0606]">
                       <TbTrash className="h-4 w-4 text-[#FF0606]" /> Delete Third Party
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleExportDetails}>
+                      <Download /> Export Details
+                    </DropdownMenuItem>
+                    
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
             </div>
-            <div className="flex justify-between text-sm border-b border-[#F8F8F8] dark:border-[#2A2A2A] pb-1">
+            {/* <div className="flex justify-between text-sm border-b border-[#F8F8F8] dark:border-[#2A2A2A] pb-1">
               <div className="flex flex-col gap-2">
                 <span className="text-xs text-gray-500">Category</span>
                 <span>{thirdParty.category}</span>
@@ -176,41 +177,27 @@ export default function ThirdPartyDetailsModal({
                 <span className="text-xs text-gray-500">Bank Name</span>
                 <span>{thirdParty.bankName}</span>
               </div>
-            </div>
+            </div> */}
           </div>
           {/* Third Party Details */}
           <div className="space-y-4">
-            <h3 className="text-xs text-gray-500">Third Party Details</h3>
             <div className="flex flex-col gap-4 text-sm">
               <span className="flex gap-2 border-b border-[#F8F8F8] dark:border-[#2A2A2A] pb-2">
-                <p className="font-medium">ID:</p>
-                <p>{thirdParty.id}</p>
-              </span>
-              <span className="flex gap-2 border-b border-[#F8F8F8] dark:border-[#2A2A2A] pb-2">
-                <p className="font-medium">Name:</p>
-                <span>{thirdParty.name}</span>
-              </span>
-              <span className="flex gap-2 border-b border-[#F8F8F8] dark:border-[#2A2A2A] pb-2">
                 <p className="font-medium">Category:</p>
-                <span>{thirdParty.category}</span>
+                <p>{thirdParty.category}</p>
               </span>
               <span className="flex gap-2 border-b border-[#F8F8F8] dark:border-[#2A2A2A] pb-2">
-                <p className="font-medium">Collections Account:</p>
-                <span className="flex gap-4">
-                  <p>{thirdParty.collectionsAccountName}</p>
-                  <p>{thirdParty.collectionsAccountNumber}</p>
-                </span>
+                <p className="font-medium">Collection Account Name:</p>
+                <span>{thirdParty.collectionsAccountName}</span>
               </span>
-              <span className="flex gap-2">
+              <span className="flex gap-2 border-b border-[#F8F8F8] dark:border-[#2A2A2A] pb-2">
+                <p className="font-medium">Collection Account Number:</p>
+                <span>{thirdParty.collectionsAccountNumber}</span>
+              </span>
+              <span className="flex gap-2 border-b border-[#F8F8F8] dark:border-[#2A2A2A] pb-2">
                 <p className="font-medium">Bank Name:</p>
                 <span>{thirdParty.bankName}</span>
               </span>
-            </div>
-          </div>
-          {/* Additional Metadata */}
-          <div className="space-y-4 mt-6">
-            <h3 className="text-xs text-gray-500">Additional Metadata</h3>
-            <div className="flex flex-col gap-4 text-sm">
               <span className="flex gap-2">
                 <p className="font-medium">Last Modified By:</p>
                 <div className="flex items-center gap-2">
@@ -220,10 +207,6 @@ export default function ThirdPartyDetailsModal({
                   </Avatar>
                   <span>Felix Babatunde Adebayo</span>
                 </div>
-              </span>
-              <span className="flex gap-2">
-                <p className="font-medium">Created At:</p>
-                <span>{thirdParty.createdAt} WAT</span>
               </span>
             </div>
           </div>
@@ -239,7 +222,6 @@ export default function ThirdPartyDetailsModal({
           </div>
         </div>
       </div>
-      <Toaster />
     </div>
   );
 }
