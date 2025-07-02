@@ -126,7 +126,7 @@ export default function AccountDetails() {
       <div className="flex justify-end  mt-6">
       <Button
         onClick={handleEditToggle}
-        className="mt-4 bg-red-600 text-white flex items-center justify-center"
+        className="mt-4 text-white flex items-center justify-center"
       >
        <TbEdit/>
         {isEditing ? "Save Changes" : "Edit Account Details"}
