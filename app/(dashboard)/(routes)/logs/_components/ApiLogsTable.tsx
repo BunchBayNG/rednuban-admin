@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -34,6 +33,7 @@ import { apiLogsData } from "@/lib/MockData";
 import View from "@/components/svg Icons/View";
 import Download from "@/components/svg Icons/Download";
 import { BsThreeDots } from "react-icons/bs";
+import ApiLogDetailsModal from "./ApiLogsDetailsModal";
 
 export function ApiLogsTable() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -44,12 +44,29 @@ export function ApiLogsTable() {
     status: "All",
     sortBy: "default",
   });
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [selectedLog, setSelectedLog] = useState<{
+    sN: number;
+    logId: string;
+    merchantCode: string;
+    requestTimestamp: string;
+    responseTimestamp: string;
+    service: string;
+    responseStatus: number;
+    timestamp: string;
+    user: string;
+    email: string;
+    transactionReference: string;
+    customerReference: string;
+    clientIP: string;
+    requestPayload: string;
+    responseBody: string;
+  } | null>(null);
   const itemsPerPage = 10;
   const totalItems = apiLogsData.length;
 
-  // Filter and sort data
   const filteredData = apiLogsData.filter((item) => {
-    const matchesSearch = item.merchantCode.includes(searchTerm);
+    const matchesSearch = item.merchantCode.includes(searchTerm) || item.logId.includes(searchTerm) || item.user.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDate =
       (!filter.fromDate || new Date(item.timestamp) >= filter.fromDate) &&
       (!filter.toDate || new Date(item.timestamp) <= filter.toDate);
@@ -144,6 +161,27 @@ export function ApiLogsTable() {
       </div>
     );
   }
+
+  const handleViewLog = (log: {
+    sN: number;
+    logId: string;
+    merchantCode: string;
+    requestTimestamp: string;
+    responseTimestamp: string;
+    service: string;
+    responseStatus: number;
+    timestamp: string;
+    user: string;
+    email: string;
+    transactionReference: string;
+    customerReference: string;
+    clientIP: string;
+    requestPayload: string;
+    responseBody: string;
+  }) => {
+    setSelectedLog(log);
+    setIsDetailsModalOpen(true);
+  };
 
   return (
     <div className="w-full relative">
@@ -361,11 +399,11 @@ export function ApiLogsTable() {
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon">
-                       <BsThreeDots className="w-4 h-4" />
+                        <BsThreeDots className="w-4 h-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                      <DropdownMenuItem onClick={() => console.log("View", item.sN)}><View /> View</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleViewLog(item)}><View /> View</DropdownMenuItem>
                       <DropdownMenuItem onClick={() => console.log("Download", item.sN)}><Download /> Download</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -375,6 +413,13 @@ export function ApiLogsTable() {
           </TableBody>
         </Table>
       </div>
+      <ApiLogDetailsModal
+        isOpen={isDetailsModalOpen}
+        onClose={() => setIsDetailsModalOpen(false)}
+        log={selectedLog}
+        setSelectedLog={setSelectedLog}
+        logs={apiLogsData}
+      />
     </div>
   );
 }
