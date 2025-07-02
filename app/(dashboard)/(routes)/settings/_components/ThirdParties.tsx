@@ -27,9 +27,10 @@ import { BsThreeDots } from "react-icons/bs";
 import { FiEye } from "react-icons/fi";
 import { TbEdit } from "react-icons/tb";
 import { TbTrash } from "react-icons/tb";
-import { ExportModal } from "../../dashboard/_components/ExportModal"; // Adjust the import path as needed
+import { ExportModal } from "../../dashboard/_components/ExportModal";
 import { LuUserPlus } from "react-icons/lu";
 import ThirdPartyDetailsModal from "./ThirdPartyDetailsModal";
+import AddThirdPartyModal from "./AddThirdPartyModal";
 
 export default function ThirdParties() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -39,16 +40,15 @@ export default function ThirdParties() {
     toDate: undefined as Date | undefined,
     sortBy: "default",
   });
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false); // State for export modal
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedThirdParty, setSelectedThirdParty] = useState<number | null>(null);
-  const itemsPerPage = 10;
-
-  // Mock data for third parties with 3 entries
-  const thirdParties = [
+  const [thirdParties, setThirdParties] = useState([
     { id: 1, name: "Partner Ltd", category: "Payment Gateway", collectionsAccountName: "Partner Collection", collectionsAccountNumber: "1234567890", bankName: "UBA Plc", createdAt: "25/06/01-10:15:30AM" },
     { id: 2, name: "Lamila Enterprise", category: "Logistics", collectionsAccountName: "Lamila Fund", collectionsAccountNumber: "0987654321", bankName: "UBA Plc", createdAt: "25/06/02-02:45:15PM" },
     { id: 3, name: "UBA", category: "Banking", collectionsAccountName: "UBA Central", collectionsAccountNumber: "5678901234", bankName: "UBA Plc", createdAt: "25/06/03-09:00:00AM" },
-  ];
+  ]);
+  const itemsPerPage = 10;
 
   // Filter data
   const filteredThirdParties = thirdParties.filter((party) => {
@@ -186,6 +186,11 @@ export default function ThirdParties() {
     { label: "CreatedAt", value: "createdAt" },
   ];
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleAddThirdParty = (newParty: any) => {
+    setThirdParties((prev) => [...prev, newParty]);
+  };
+
   return (
     <div className="mt-4">
       <div className="flex justify-between items-center mb-4 space-x-4">
@@ -276,7 +281,7 @@ export default function ThirdParties() {
           </div>
         </div>
         <div className="flex space-x-2">
-        <Button variant="outline" onClick={() => console.log('Add Third Party clicked')}>
+          <Button variant="outline" onClick={() => setIsAddModalOpen(true)}>
             Add Third Party <LuUserPlus className="h-4 w-4" />
           </Button>
           <Button onClick={() => setIsExportModalOpen(true)}>
@@ -315,9 +320,15 @@ export default function ThirdParties() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuItem onClick={() => setSelectedThirdParty(party.id)}><FiEye className=" h-4 w-4" />View</DropdownMenuItem>
-                    <DropdownMenuItem><TbEdit className=" h-4 w-4" />Edit</DropdownMenuItem>
-                    <DropdownMenuItem className="text-[#FF0606]"><TbTrash className=" h-4 w-4 text-[#FF0606]" />Delete</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSelectedThirdParty(party.id)}>
+                      <FiEye className="h-4 w-4" /> View
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <TbEdit className="h-4 w-4" /> Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="text-[#FF0606]">
+                      <TbTrash className="h-4 w-4 text-[#FF0606]" /> Delete
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -383,14 +394,18 @@ export default function ThirdParties() {
         onExport={handleExport}
         fieldOptions={fieldOptions}
       />
-    <ThirdPartyDetailsModal
-      isOpen={selectedThirdParty !== null}
-      onClose={() => setSelectedThirdParty(null)}
-      thirdParty={thirdParties.find((party) => party.id === selectedThirdParty) || null}
-      thirdParties={thirdParties}
-      setSelectedThirdParty={(thirdParty) => setSelectedThirdParty(thirdParty ? thirdParty.id : null)}
-    />
+      <ThirdPartyDetailsModal
+        isOpen={selectedThirdParty !== null}
+        onClose={() => setSelectedThirdParty(null)}
+        thirdParty={thirdParties.find((party) => party.id === selectedThirdParty) || null}
+        thirdParties={thirdParties}
+        setSelectedThirdParty={(thirdParty) => setSelectedThirdParty(thirdParty ? thirdParty.id : null)}
+      />
+      <AddThirdPartyModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onAdd={handleAddThirdParty}
+      />
     </div>
-
   );
 }
