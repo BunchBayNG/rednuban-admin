@@ -66,7 +66,7 @@ function Services() {
     setEditMode((prev) => ({ ...prev, [data.serviceName]: false }));
   };
 
-  const handleReset = () => {
+  const handleReset: () => void = () => {
     setServices((prev) =>
       prev.map((service) => ({
         ...service,
