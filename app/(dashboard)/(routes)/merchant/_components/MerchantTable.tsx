@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Filter, Search, ChevronLeft, ChevronRight, CalendarIcon } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@radix-ui/react-popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -34,6 +34,7 @@ import { BsThreeDots } from "react-icons/bs";
 import View from "@/components/svg Icons/View";
 import Download from "@/components/svg Icons/Download";
 import { useRouter } from "next/navigation";
+import { Toaster, toast } from "sonner";
 
 interface Merchant {
   id?: string;
@@ -56,7 +57,6 @@ interface MerchantTableProps {
 }
 
 export function MerchantTable({ refreshKey }: MerchantTableProps) {
-  const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState({
@@ -67,6 +67,7 @@ export function MerchantTable({ refreshKey }: MerchantTableProps) {
   });
   const [totalPages, setTotalPages] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [merchants, setMerchants] = useState<Merchant[]>([]);
   const itemsPerPage = 10;
   const router = useRouter();
 
@@ -86,37 +87,49 @@ export function MerchantTable({ refreshKey }: MerchantTableProps) {
       console.log("Frontend GET Request URL:", `/api/reports/organizations?${queryParams}`);
 
       const response = await fetch(`/api/reports/organizations?${queryParams}`, {
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${document.cookie
+            .split("; ")
+            .find((row) => row.startsWith("accessToken="))
+            ?.split("=")[1]}`,
+        },
       });
       const data = await response.json();
-      console.log("API Response:", data);
+      console.log("API Response:", JSON.stringify(data, null, 2));
 
       if (response.ok && data.status) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const mappedMerchants = data.data.content.map((item: any) => {
-          const merchant = {
-            sN: item.id,
-            merchantName: item.organizationName,
-            code: item.productPrefix || `MCH-${item.id.slice(-6)}`,
-            accountName: item.settlementAccountName || "",
-            accountNumber: item.settlementAccountNumber || "",
-            primaryContact: `${item.contactFirstName || ""} ${item.contactLastName || ""}`.trim() || item.contactEmail || "N/A",
-            status: item.orgStatus || "Unknown",
-            noOfUsers: item.noOfUsers || 0,
-            createdAt: new Date(item.createdAt).toLocaleString(),
-          };
-          console.log("Mapped Merchant:", merchant);
-          return merchant;
-        });
+         // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const mappedMerchants = data.data.content.map((item: any) => ({
+          sN: item.id || String(Math.random().toString(36).substr(2, 9)),
+          merchantName: item.organizationName || "N/A",
+          code: item.productPrefix || `MCH-${item.id?.slice(-6) || String(Math.random().toString(36).substr(2, 6))}`,
+          accountName: item.settlementAccountName || "N/A",
+          accountNumber: item.settlementAccountNumber || "N/A",
+          primaryContact: `${item.contactFirstName || ""} ${item.contactLastName || ""}`.trim() || item.contactEmail || "N/A",
+          status: item.orgStatus || "Unknown",
+          noOfUsers: item.noOfUsers || 0,
+          createdAt: item.createdAt
+            ? new Date(item.createdAt).toLocaleString("en-US", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "N/A",
+        }));
         setMerchants(mappedMerchants);
         setTotalPages(data.data.totalPages || 1);
       } else {
         setError(data.detail || data.error || "Failed to fetch merchants");
         setMerchants([]);
+        toast.error("Failed to fetch merchants");
       }
     } catch (err) {
       setError("Network or server error");
       setMerchants([]);
+      toast.error("Network or server error");
       console.error("Fetch Error:", err);
     }
   };
@@ -125,13 +138,12 @@ export function MerchantTable({ refreshKey }: MerchantTableProps) {
     fetchMerchants();
   }, [currentPage, searchTerm, filter, refreshKey]);
 
-  // Filter and sort data (client-side fallback)
   const filteredData = merchants.filter((item) => {
     const matchesSearch =
       item.merchantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.code.includes(searchTerm) ||
+      item.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.accountName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.accountNumber.includes(searchTerm) ||
+      item.accountNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.primaryContact.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
@@ -175,7 +187,7 @@ export function MerchantTable({ refreshKey }: MerchantTableProps) {
 
   const getInitials = (name: string) => {
     const names = name.split(" ");
-    return names.length > 1 ? names[0][0] + names[names.length - 1][0] : names[0][0];
+    return names.length > 1 ? names[0][0] + names[names.length - 1][0] : names[0]?.[0] || "N/A";
   };
 
   const handleResetDate = () => setFilter((prev) => ({ ...prev, fromDate: undefined, toDate: undefined }));
@@ -469,7 +481,33 @@ export function MerchantTable({ refreshKey }: MerchantTableProps) {
                       <DropdownMenuItem onClick={() => router.push(`/merchant/profile/${item.sN}`)}>
                         <View /> View Profile
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => console.log("Download", item.sN)}>
+                      <DropdownMenuItem
+                        onClick={async () => {
+                          try {
+                            const response = await fetch(`/api/export-merchant?id=${item.sN}`, {
+                              headers: {
+                                "Content-Type": "application/json",
+                                Authorization: `Bearer ${document.cookie
+                                  .split("; ")
+                                  .find((row) => row.startsWith("accessToken="))
+                                  ?.split("=")[1]}`,
+                              },
+                            });
+                            if (!response.ok) throw new Error("Export failed");
+                            const blob = await response.blob();
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.download = `merchant_${item.code}.csv`;
+                            a.click();
+                            window.URL.revokeObjectURL(url);
+                            toast.success("Export successful! Check your downloads.");
+                          } catch (error) {
+                            console.error("Export error:", error);
+                            toast.error("Export failed. Please try again later.");
+                          }
+                        }}
+                      >
                         <Download /> Download
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -480,6 +518,7 @@ export function MerchantTable({ refreshKey }: MerchantTableProps) {
           </TableBody>
         </Table>
       </div>
+      <Toaster />
     </div>
   );
 }
