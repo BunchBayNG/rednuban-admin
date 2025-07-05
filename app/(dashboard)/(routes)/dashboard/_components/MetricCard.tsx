@@ -148,8 +148,255 @@ export function MetricCard({ metric }: MetricCardProps) {
     }
   };
 
+  const fetchSuccessfulTransactionVolume = async (
+    startDate: string,
+    endDate: string,
+    isPreviousPeriod: boolean = false
+  ) => {
+    try {
+      let adjustedStartDate = startDate;
+      let adjustedEndDate = endDate;
+
+      if (isPreviousPeriod) {
+        const currentStart = new Date(startDate);
+        const currentEnd = new Date(endDate);
+        const duration = currentEnd.getTime() - currentStart.getTime();
+
+        const previousEnd = new Date(currentStart.getTime() - 86400000); // -1 day
+        const previousStart = new Date(previousEnd.getTime() - duration);
+
+        adjustedStartDate = previousStart.toISOString().split("T")[0];
+        adjustedEndDate = previousEnd.toISOString().split("T")[0];
+
+        if (previousStart < new Date("2020-01-01")) {
+          throw new Error("Previous period too old");
+        }
+      }
+
+      const query = new URLSearchParams({ startDate: adjustedStartDate, endDate: adjustedEndDate });
+      // const merchantOrgId = "your-merchant-org-id"; // Uncomment and set if required
+      // if (merchantOrgId) query.append("merchantOrgId", merchantOrgId);
+
+      const url = `/api/analytics/transactions/successful-volume?${query}`;
+      console.log("Client-side: Fetching transaction volume:", url);
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await response.json();
+
+      console.log("Client-side: Transaction volume response:", {
+        status: response.status,
+        body: JSON.stringify(data, null, 2),
+      });
+
+      if (response.ok && data.status && typeof data.data === "number") {
+        return data.data;
+      } else {
+        throw new Error(data.message || `Failed to fetch successful transaction volume: Status ${response.status}`);
+      }
+    } catch (err) {
+      console.error("Error in fetchSuccessfulTransactionVolume:", err);
+      throw err;
+    }
+  };
+
+  const fetchTotalStaticVnubans = async (
+    startDate: string,
+    endDate: string,
+    isPreviousPeriod: boolean = false
+  ) => {
+    try {
+      let adjustedStartDate = startDate;
+      let adjustedEndDate = endDate;
+
+      if (isPreviousPeriod) {
+        const currentStart = new Date(startDate);
+        const currentEnd = new Date(endDate);
+        const duration = currentEnd.getTime() - currentStart.getTime();
+
+        const previousEnd = new Date(currentStart.getTime() - 86400000); // -1 day
+        const previousStart = new Date(previousEnd.getTime() - duration);
+
+        adjustedStartDate = previousStart.toISOString().split("T")[0];
+        adjustedEndDate = previousEnd.toISOString().split("T")[0];
+
+        if (previousStart < new Date("2020-01-01")) {
+          throw new Error("Previous period too old");
+        }
+      }
+
+      const query = new URLSearchParams({ startDate: adjustedStartDate, endDate: adjustedEndDate });
+      const url = `/api/analytics/vnuban/total-static?${query}`;
+
+      const response = await fetch(url, { method: "GET", headers: { "Content-Type": "application/json" } });
+      const data = await response.json();
+
+      if (response.ok && data.status && typeof data.data === "number") {
+        return data.data;
+      } else {
+        throw new Error(data.message || "Failed to fetch total vNUBAN");
+      }
+    } catch (err) {
+      console.error("Error in fetchTotalVnubans:", err);
+      throw err;
+    }
+  };
+  
+  const fetchTotalDynamicVnuban = async (
+    startDate: string,
+    endDate: string,
+    isPreviousPeriod: boolean = false
+  ) => {
+    try {
+      let adjustedStartDate = startDate;
+      let adjustedEndDate = endDate;
+
+      if (isPreviousPeriod) {
+        const currentStart = new Date(startDate);
+        const currentEnd = new Date(endDate);
+        const duration = currentEnd.getTime() - currentStart.getTime();
+
+        const previousEnd = new Date(currentStart.getTime() - 86400000); // -1 day
+        const previousStart = new Date(previousEnd.getTime() - duration);
+
+        adjustedStartDate = previousStart.toISOString().split("T")[0];
+        adjustedEndDate = previousEnd.toISOString().split("T")[0];
+
+        if (previousStart < new Date("2020-01-01")) {
+          throw new Error("Previous period too old");
+        }
+      }
+
+      const query = new URLSearchParams({ startDate: adjustedStartDate, endDate: adjustedEndDate });
+      const url = `/api/analytics/vnuban/total-dynamic?${query}`;
+
+      const response = await fetch(url, { method: "GET", headers: { "Content-Type": "application/json" } });
+      const data = await response.json();
+
+      if (response.ok && data.status && typeof data.data === "number") {
+        return data.data;
+      } else {
+        throw new Error(data.message || "Failed to fetch total vNUBAN");
+      }
+    } catch (err) {
+      console.error("Error in fetchTotalVnubans:", err);
+      throw err;
+    }
+  };
+
+  const fetchSuccessfulSettlementVolume = async (
+    startDate: string,
+    endDate: string,
+    isPreviousPeriod: boolean = false
+  ) => {
+    try {
+      let adjustedStartDate = startDate;
+      let adjustedEndDate = endDate;
+
+      if (isPreviousPeriod) {
+        const currentStart = new Date(startDate);
+        const currentEnd = new Date(endDate);
+        const duration = currentEnd.getTime() - currentStart.getTime();
+
+        const previousEnd = new Date(currentStart.getTime() - 86400000); // -1 day
+        const previousStart = new Date(previousEnd.getTime() - duration);
+
+        adjustedStartDate = previousStart.toISOString().split("T")[0];
+        adjustedEndDate = previousEnd.toISOString().split("T")[0];
+
+        if (previousStart < new Date("2020-01-01")) {
+          throw new Error("Previous period too old");
+        }
+      }
+
+      const query = new URLSearchParams({ startDate: adjustedStartDate, endDate: adjustedEndDate });
+      // const merchantOrgId = "your-merchant-org-id"; // Uncomment and set if required
+      // if (merchantOrgId) query.append("merchantOrgId", merchantOrgId);
+
+      const url = `/api/analytics/settlements/successful-volume?${query}`;
+      console.log("Client-side: Fetching transaction volume:", url);
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await response.json();
+
+      console.log("Client-side: Transaction volume response:", {
+        status: response.status,
+        body: JSON.stringify(data, null, 2),
+      });
+
+      if (response.ok && data.status && typeof data.data === "number") {
+        return data.data;
+      } else {
+        throw new Error(data.message || `Failed to fetch successful transaction volume: Status ${response.status}`);
+      }
+    } catch (err) {
+      console.error("Error in fetchSuccessfulTransactionVolume:", err);
+      throw err;
+    }
+  };
+
+  const fetchSuccessfulPayoutVolume = async (
+    startDate: string,
+    endDate: string,
+    isPreviousPeriod: boolean = false
+  ) => {
+    try {
+      let adjustedStartDate = startDate;
+      let adjustedEndDate = endDate;
+
+      if (isPreviousPeriod) {
+        const currentStart = new Date(startDate);
+        const currentEnd = new Date(endDate);
+        const duration = currentEnd.getTime() - currentStart.getTime();
+
+        const previousEnd = new Date(currentStart.getTime() - 86400000); // -1 day
+        const previousStart = new Date(previousEnd.getTime() - duration);
+
+        adjustedStartDate = previousStart.toISOString().split("T")[0];
+        adjustedEndDate = previousEnd.toISOString().split("T")[0];
+
+        if (previousStart < new Date("2020-01-01")) {
+          throw new Error("Previous period too old");
+        }
+      }
+
+      const query = new URLSearchParams({ startDate: adjustedStartDate, endDate: adjustedEndDate });
+      // const merchantOrgId = "your-merchant-org-id"; // Uncomment and set if required
+      // if (merchantOrgId) query.append("merchantOrgId", merchantOrgId);
+
+      const url = `/api/analytics/payouts/successful-volume?${query}`;
+      console.log("Client-side: Fetching transaction volume:", url);
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await response.json();
+
+      console.log("Client-side: Transaction volume response:", {
+        status: response.status,
+        body: JSON.stringify(data, null, 2),
+      });
+
+      if (response.ok && data.status && typeof data.data === "number") {
+        return data.data;
+      } else {
+        throw new Error(data.message || `Failed to fetch successful transaction volume: Status ${response.status}`);
+      }
+    } catch (err) {
+      console.error("Error in fetchSuccessfulTransactionVolume:", err);
+      throw err;
+    }
+  };
+  
+
   useEffect(() => {
-    const supportedMetrics = ["total-vnubans", "total-merchants"];
+    const supportedMetrics = ["total-vnubans", "total-merchants", "virtual-transaction-flow", "virtual-transaction-inflow" ,"pending-notifications","successful-amount","payouts-processed"];
 
     if (!supportedMetrics.includes(metric.id)) {
       setValue(metric.value);
@@ -176,9 +423,38 @@ export function MetricCard({ metric }: MetricCardProps) {
         } else if (metric.id === "total-merchants") {
           currentTotal = await fetchTotalMerchants(startDate, endDate);
           previousTotal = await fetchTotalMerchants(startDate, endDate, true);
+        } else if (metric.id === "virtual-transaction-flow") {
+          currentTotal = await fetchSuccessfulTransactionVolume(startDate, endDate);
+          previousTotal = await fetchSuccessfulTransactionVolume(startDate, endDate, true);
+        } else if (metric.id === "virtual-transaction-inflow") {
+          currentTotal = await fetchTotalStaticVnubans(startDate, endDate);
+          previousTotal = await fetchTotalStaticVnubans(startDate, endDate, true);
+        } else if (metric.id === "pending-notifications") {
+          currentTotal = await fetchTotalDynamicVnuban(startDate, endDate);
+          previousTotal = await fetchTotalDynamicVnuban(startDate, endDate, true);
+        } else if (metric.id === "successful-amount") {
+          currentTotal = await fetchSuccessfulSettlementVolume(startDate, endDate);
+          previousTotal = await fetchSuccessfulSettlementVolume(startDate, endDate, true);
+        } else if (metric.id === "payouts-processed") {
+          currentTotal = await fetchSuccessfulPayoutVolume(startDate, endDate);
+          previousTotal = await fetchSuccessfulPayoutVolume(startDate, endDate, true);
         }
+        
 
-        const formattedValue = currentTotal.toLocaleString();
+        let formattedValue: string;
+
+        if (["virtual-transaction-flow", "successful-amount", "payouts-processed"].includes(metric.id)) {
+          formattedValue = `₦${currentTotal.toLocaleString("en-NG", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}`;
+        } else {
+          formattedValue = currentTotal.toLocaleString("en-NG", {
+            maximumFractionDigits: 0,
+          });
+        }
+        
+
         const changePercent = previousTotal ? ((currentTotal - previousTotal) / previousTotal) * 100 : 0;
         const roundedChange = Math.round(Math.abs(changePercent) * 10) / 10;
         const newChangeType = changePercent >= 0 ? "positive" : "negative";
@@ -188,10 +464,13 @@ export function MetricCard({ metric }: MetricCardProps) {
         setChangeType(newChangeType);
       } catch (err) {
         setError("Failed to load metric");
-        setValue("0");
+        setValue(metric.id === "virtual-transaction-inflow" ? "₦0.00" : "0");
         setChange(0);
         setChangeType("positive");
-        console.log(err);
+        console.error("Client-side: Fetch error:", {
+          message: err instanceof Error ? err.message : "Unknown error",
+          stack: err instanceof Error ? err.stack : "Unknown stack",
+        });
       } finally {
         setLoading(false);
       }

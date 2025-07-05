@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     // Validate date range
     const start = new Date(queryParams.startDate);
     const end = new Date(queryParams.endDate);
-    const now = new Date();
+    const now = new Date("2025-07-05");
     const minDate = new Date("2020-01-01");
     if (start > now || end > now || start < minDate || end < minDate || start > end) {
       console.error("Validation failed: Invalid date range", queryParams);
@@ -87,74 +87,57 @@ export async function GET(request: NextRequest) {
     const isoStartDate = `${queryParams.startDate}T00:00:00Z`;
     const isoEndDate = `${queryParams.endDate}T00:00:00Z`;
 
-    // Try multiple endpoints
-    const endpoints = [
-      "https://redcollection.onrender.com/api/v1/analytics/vnubans/total",
-    ];
+    const apiUrl = "https://redcollection.onrender.com/api/v1/analytics/transactions/successful-volume";
+    const externalUrl = `${apiUrl}?startDate=${encodeURIComponent(isoStartDate)}&endDate=${encodeURIComponent(isoEndDate)}${queryParams.merchantOrgId ? `&merchantOrgId=${queryParams.merchantOrgId}` : ""}`;
+    console.log("Attempting external API URL:", externalUrl);
+    console.log("Outgoing Request Headers:", { Authorization: `Bearer ${accessToken}` });
 
-    let lastError = null;
-    for (const apiUrl of endpoints) {
-      const externalUrl = `${apiUrl}?startDate=${isoStartDate}&endDate=${isoEndDate}${queryParams.merchantOrgId ? `&merchantOrgId=${queryParams.merchantOrgId}` : ''}`;
-      console.log("Attempting external API URL:", externalUrl);
-      console.log("Outgoing Request Headers:", { Authorization: `Bearer ${accessToken}` });
-
-      try {
-        const res = await fetch(externalUrl, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          signal: AbortSignal.timeout(10000),
-        });
-
-        const data = await res.json();
-        console.log("External API Response:", {
-          status: res.status,
-          statusText: res.statusText,
-          body: JSON.stringify(data, null, 2),
-        });
-
-        if (res.ok && data.status) {
-          if (typeof data.data !== "number") {
-            console.error("Invalid response data type:", typeof data.data);
-            return NextResponse.json(
-              {
-                statusCode: 500,
-                status: false,
-                message: "Invalid response data type from external API",
-                data: null,
-              },
-              { status: 500 }
-            );
-          }
-          return NextResponse.json(data, { status: 200 });
-        } else {
-          console.error("External API Error:", data);
-          lastError = data;
-        }
-      } catch (err) {
-        console.error("Fetch attempt failed for endpoint:", { 
-          apiUrl, 
-          startDate: isoStartDate, 
-          endDate: isoEndDate, 
-          error: err instanceof Error ? err.message : "Unknown error" 
-        });
-        lastError = err;
-      }
-    }
-
-    // Fallback to mock data
-    console.error("All endpoint attempts failed, using mock data:", lastError);
-    return NextResponse.json(
-      {
-        statusCode: 1073741824,
-        status: true,
-        message: "Mock data due to API failure",
-        data: 9007199254740991,
+    const res = await fetch(externalUrl, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
       },
-      { status: 200 }
-    );
+      signal: AbortSignal.timeout(10000),
+    });
+
+    const data = await res.json();
+    console.log("External API Response:", {
+      status: res.status,
+      statusText: res.statusText,
+      body: JSON.stringify(data, null, 2),
+    });
+
+    if (res.ok && data.status) {
+      if (typeof data.data !== "number") {
+        console.error("Invalid response data: Expected number", data.data);
+        return NextResponse.json(
+          {
+            statusCode: 500,
+            status: false,
+            message: "Invalid response data from external API",
+            data: null,
+          },
+          { status: 500 }
+        );
+      }
+      return NextResponse.json(data, { status: 200 });
+    } else {
+      console.error("External API Error:", {
+        status: res.status,
+        statusText: res.statusText,
+        body: data,
+      });
+      return NextResponse.json(
+        {
+          statusCode: res.status,
+          status: false,
+          message: data.message || `External API error: ${res.statusText}`,
+          data: null,
+        },
+        { status: res.status }
+      );
+    }
   } catch (error) {
     console.error("API Error:", {
       message: error instanceof Error ? error.message : "Unknown error",
@@ -164,7 +147,7 @@ export async function GET(request: NextRequest) {
       {
         statusCode: 500,
         status: false,
-        message: "Internal server error",
+        message: error instanceof Error ? error.message : "Internal server error",
         data: null,
       },
       { status: 500 }

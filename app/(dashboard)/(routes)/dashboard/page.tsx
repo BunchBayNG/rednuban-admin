@@ -10,6 +10,8 @@ import { TopMerchants } from "./_components/TopMerchants";
 import { TransactionFlowChart } from "./_components/TransactionFlowChart";
 import { PlannedSettlements } from "./_components/PlannedSettlement";
 import { ExportModal } from "./_components/ExportModal";
+import { SettlementsCount } from "./_components/SettlementsCount";
+import { TransactionsCount } from "./_components/TransactionsCount";
 
 interface DashboardMetric {
   id: string;
@@ -27,7 +29,7 @@ export default function DashboardPage() {
     previousTotal: number;
     error?: string;
   }>({
-    currentTotal: 1900789,
+    currentTotal: 0,
     previousTotal: 1550000, // Example for change calculation
     error: undefined,
   });
@@ -111,7 +113,7 @@ export default function DashboardPage() {
     {
       id: 'total-merchants',
       title: 'Total Merchants',
-      value: '134,790',
+      value: '0',
       change: 22.7,
       changeType: 'positive',
       period: 'Last 30 days',
@@ -136,16 +138,16 @@ export default function DashboardPage() {
     },
     {
       id: 'virtual-transaction-flow',
-      title: 'Count of Virtual Transaction Flow',
-      value: '12,900',
+      title: 'Transactions Success Volume',
+      value: '₦0',
       change: -12.2,
       changeType: 'negative',
       period: 'Last 30 days',
     },
     {
       id: 'virtual-transaction-inflow',
-      title: 'Value of Virtual Transaction Inflow',
-      value: '3,459',
+      title: 'Total Static vNUBANs',
+      value: '0',
       change: 22.7,
       changeType: 'positive',
       period: 'Last 30 days',
@@ -163,16 +165,16 @@ export default function DashboardPage() {
     },
     {
       id: 'pending-notifications',
-      title: 'Total Amount Pending Merchant Notification',
-      value: '₦4,789,008.00',
+      title: 'Total Dynamic vNUBANs',
+      value: '0',
       change: 22.7,
       changeType: 'positive',
       period: 'Last 30 days'
     },
     {
       id: 'successful-amount',
-      title: 'Total Successful Amount Collected',
-      value: '₦7,567,900,890.87',
+      title: 'Settlements Success Volume',
+      value: '₦0',
       change: 22.7,
       changeType: 'positive',
       period: 'Last 30 days'
@@ -180,7 +182,7 @@ export default function DashboardPage() {
     {
       id: 'payouts-processed',
       title: 'Total Payouts Processed',
-      value: '₦10,567,900,890.87',
+      value: '₦0',
       change: 22.7,
       changeType: 'positive',
       period: 'Last 30 days'
@@ -250,8 +252,12 @@ export default function DashboardPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-3">
             <PlannedSettlements />
-            <TopMerchants />
-            <PayoutStatusChart />
+           <SettlementsCount />
+           <TransactionsCount />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2">
+          <TopMerchants />
+          <PayoutStatusChart />
           </div>
         </div>
       </div>
