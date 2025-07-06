@@ -23,7 +23,7 @@ export default function Home() {
     <div className="flex justify-center items-center h-screen bg-background">
       <div className="flex flex-col items-center">
       <DotLottieReact
-      src="https://lottie.host/05322472-441b-4f56-b5b3-eb741912450b/H7rp2z4IZj.lottie"
+      src="https://lottie.host/4085aa65-9779-42c5-b964-7114b91ad528/laZ27JeWaF.lottie"
       loop
       autoplay
       className="w-50 h-50"
