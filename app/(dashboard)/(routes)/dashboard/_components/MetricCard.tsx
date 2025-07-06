@@ -118,6 +118,7 @@ export function MetricCard({ metric }: MetricCardProps) {
       "pending-notifications": "/api/analytics/vnuban/total-dynamic",
       "successful-amount": "/api/analytics/settlements/successful-volume",
       "payouts-processed": "/api/analytics/payouts/successful-volume",
+      "distinctive-vnubans": "/api/analytics/merchants/total",
     };
 
     if (!Object.keys(supported).includes(metric.id)) {
