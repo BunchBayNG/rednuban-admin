@@ -158,7 +158,7 @@ export default function DashboardPage() {
     {
       id: 'distinctive-vnubans',
       title: 'Distinctive Active vNUBANs',
-      value: '11,989',
+      value: '0',
       change: 22.7,
       changeType: 'positive',
       period: 'Last 30 days'
