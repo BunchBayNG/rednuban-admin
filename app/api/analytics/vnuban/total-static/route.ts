@@ -12,11 +12,6 @@ export async function GET(request: NextRequest) {
       merchantOrgId: params.merchantOrgId || "",
     };
 
-    console.log("API request received:", {
-      url: request.url,
-      queryParams,
-    });
-
     if (!queryParams.startDate || !queryParams.endDate) {
       return NextResponse.json(
         {
@@ -87,61 +82,46 @@ export async function GET(request: NextRequest) {
     const isoStartDate = `${queryParams.startDate}T00:00:00Z`;
     const isoEndDate = `${queryParams.endDate}T00:00:00Z`;
 
-    const endpoints = [
-      "https://redcollection.onrender.com/api/v1/analytics/vnubans/total-static",
-    ];
+    const externalUrl = `https://redcollection.onrender.com/api/v1/analytics/vnubans/total-static?startDate=${encodeURIComponent(
+      isoStartDate
+    )}&endDate=${encodeURIComponent(isoEndDate)}${
+      queryParams.merchantOrgId
+        ? `&merchantOrgId=${queryParams.merchantOrgId}`
+        : ""
+    }`;
 
-    let lastError = null;
+    const res = await fetch(externalUrl, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      signal: AbortSignal.timeout(10000),
+    });
 
-    for (const apiUrl of endpoints) {
-      const externalUrl = `${apiUrl}?startDate=${encodeURIComponent(
-        isoStartDate
-      )}&endDate=${encodeURIComponent(isoEndDate)}${
-        queryParams.merchantOrgId
-          ? `&merchantOrgId=${queryParams.merchantOrgId}`
-          : ""
-      }`;
+    const data = await res.json();
 
-      try {
-        const res = await fetch(externalUrl, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          signal: AbortSignal.timeout(10000),
-        });
-
-        const data = await res.json();
-
-        if (res.ok && data.status && typeof data.data === "number") {
-          return NextResponse.json(data, { status: 200 });
-        } else {
-          lastError = data;
-        }
-      } catch (err) {
-        lastError = err;
-        console.error("Fetch failed for:", apiUrl, err);
-      }
+    if (!res.ok || !data.status || typeof data.data !== "number") {
+      return NextResponse.json(
+        {
+          statusCode: res.status,
+          status: false,
+          message: data?.message || "Failed to retrieve valid data from API",
+          data: null,
+        },
+        { status: res.status }
+      );
     }
 
-    console.error("All API attempts failed. Returning mock data.", lastError);
-    return NextResponse.json(
-      {
-        statusCode: 1073741824,
-        status: true,
-        message: "Mock data due to API failure",
-        data: 9007199254740991,
-      },
-      { status: 200 }
-    );
+    return NextResponse.json(data, { status: 200 });
   } catch (error) {
     console.error("Unexpected error in route:", error);
     return NextResponse.json(
       {
         statusCode: 500,
         status: false,
-        message: "Internal server error",
+        message:
+          error instanceof Error ? error.message : "Internal server error",
         data: null,
       },
       { status: 500 }

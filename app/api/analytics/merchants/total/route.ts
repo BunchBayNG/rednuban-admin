@@ -9,13 +9,8 @@ export async function GET(request: NextRequest) {
     const queryParams = {
       startDate: params.startDate || "",
       endDate: params.endDate || "",
+      merchantOrgId: params.merchantOrgId || "",
     };
-
-    // Log the incoming request
-    console.log("Total Merchants API Request:", {
-      url: request.url,
-      queryParams,
-    });
 
     // Validate required parameters
     if (!queryParams.startDate || !queryParams.endDate) {
@@ -30,7 +25,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Validate date format
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(queryParams.startDate) || !dateRegex.test(queryParams.endDate)) {
       return NextResponse.json(
@@ -63,8 +57,6 @@ export async function GET(request: NextRequest) {
 
     const cookieStore = await cookies();
     const accessToken = cookieStore.get("accessToken")?.value;
-    console.log("Retrieved accessToken from cookie:", accessToken ? "Present" : "Missing");
-
 
     if (!accessToken) {
       return NextResponse.json(
@@ -78,13 +70,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Convert to ISO
     const isoStartDate = `${queryParams.startDate}T00:00:00Z`;
     const isoEndDate = `${queryParams.endDate}T00:00:00Z`;
 
-    const apiUrl = `https://redcollection.onrender.com/api/v1/analytics/transactions/total-merchants?startDate=${isoStartDate}&endDate=${isoEndDate}`;
+    const externalUrl = `https://redcollection.onrender.com/api/v1/analytics/transactions/total-merchants?startDate=${isoStartDate}&endDate=${isoEndDate}${
+      queryParams.merchantOrgId ? `&merchantOrgId=${queryParams.merchantOrgId}` : ""
+    }`;
 
-    const res = await fetch(apiUrl, {
+    const response = await fetch(externalUrl, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -93,37 +86,27 @@ export async function GET(request: NextRequest) {
       signal: AbortSignal.timeout(10000),
     });
 
-    const data = await res.json();
+    const data = await response.json();
 
-    console.log("External API (Total Merchants) Response:", {
-      status: res.status,
-      body: data,
-    });
-
-    if (res.ok && data.status && typeof data.data === "number") {
-      return NextResponse.json(data, { status: 200 });
-    } else {
+    if (!response.ok || !data.status || typeof data.data !== "number") {
       return NextResponse.json(
         {
-          statusCode: res.status,
+          statusCode: 502,
           status: false,
-          message: data.message || "Failed to fetch total merchants",
+          message: data?.message || "Invalid or failed response from external API",
           data: null,
         },
-        { status: res.status }
+        { status: 502 }
       );
     }
-  } catch (error) {
-    console.error("Total Merchants API Error:", {
-      message: error instanceof Error ? error.message : "Unknown error",
-      stack: error instanceof Error ? error.stack : "No stack",
-    });
 
+    return NextResponse.json(data, { status: 200 });
+  } catch (error) {
     return NextResponse.json(
       {
         statusCode: 500,
         status: false,
-        message: "Internal server error",
+        message: error instanceof Error ? error.message : "Internal server error",
         data: null,
       },
       { status: 500 }

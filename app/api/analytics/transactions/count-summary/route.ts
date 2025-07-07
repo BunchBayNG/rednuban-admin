@@ -12,15 +12,13 @@ export async function GET(request: NextRequest) {
       merchantOrgId: params.merchantOrgId || "",
     };
 
-    // Log incoming request
     console.log("API request received:", {
       url: request.url,
       queryParams,
     });
 
-    // Validate parameters
+    // Basic validations
     if (!queryParams.startDate || !queryParams.endDate) {
-      console.error("Validation failed: Missing startDate or endDate");
       return NextResponse.json(
         {
           statusCode: 400,
@@ -32,10 +30,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Validate date format (YYYY-MM-DD)
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(queryParams.startDate) || !dateRegex.test(queryParams.endDate)) {
-      console.error("Validation failed: Invalid date format", queryParams);
       return NextResponse.json(
         {
           statusCode: 400,
@@ -47,31 +43,27 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Validate date range
     const start = new Date(queryParams.startDate);
     const end = new Date(queryParams.endDate);
     const now = new Date("2025-07-05");
     const minDate = new Date("2020-01-01");
+
     if (start > now || end > now || start < minDate || end < minDate || start > end) {
-      console.error("Validation failed: Invalid date range", queryParams);
       return NextResponse.json(
         {
           statusCode: 400,
           status: false,
-          message: "Invalid date range. Dates must be after 2020 and not in the future.",
+          message: "Invalid date range",
           data: null,
         },
         { status: 400 }
       );
     }
 
-    // Get access token from cookies
     const cookieStore = await cookies();
     const accessToken = cookieStore.get("accessToken")?.value;
-    console.log("Retrieved accessToken from cookie:", accessToken ? "Present" : "Missing");
 
     if (!accessToken) {
-      console.error("No access token found in cookie");
       return NextResponse.json(
         {
           statusCode: 401,
@@ -83,14 +75,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Convert to ISO 8601
     const isoStartDate = `${queryParams.startDate}T00:00:00Z`;
     const isoEndDate = `${queryParams.endDate}T00:00:00Z`;
 
     const apiUrl = "https://redcollection.onrender.com/api/v1/analytics/transactions/count-summary";
     const externalUrl = `${apiUrl}?startDate=${encodeURIComponent(isoStartDate)}&endDate=${encodeURIComponent(isoEndDate)}${queryParams.merchantOrgId ? `&merchantOrgId=${queryParams.merchantOrgId}` : ""}`;
-    console.log("Attempting external API URL:", externalUrl);
-    console.log("Outgoing Request Headers:", { Authorization: `Bearer ${accessToken}` });
 
     const res = await fetch(externalUrl, {
       method: "GET",
@@ -102,60 +91,43 @@ export async function GET(request: NextRequest) {
     });
 
     const data = await res.json();
-    console.log("External API Response:", {
-      status: res.status,
-      statusText: res.statusText,
-      body: JSON.stringify(data, null, 2),
-    });
 
     if (res.ok && data.status) {
+      // Ensure expected structure
       if (typeof data.data !== "object" || !("total" in data.data)) {
-        console.error("Invalid response data: Expected object with total, success, pending, failed", data.data);
         return NextResponse.json(
           {
             statusCode: 500,
+            status: false,
+            message: "Invalid response data from external API",
+            data: null,
+          },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json(data, { status: 200 });
+    } else {
+      return NextResponse.json(
+        {
+          statusCode: res.status,
           status: false,
-          message: "Invalid response data from external API",
+          message: data.message || "External API error",
           data: null,
         },
-        { status: 500 }
+        { status: res.status }
       );
     }
-    return NextResponse.json(data, { status: 200 });
-  } else {
-    console.error("External API Error:", {
-      status: res.status,
-      statusText: res.statusText,
-      body: data,
-    });
+  } catch (error) {
+    console.error("Unhandled API Error:", error);
     return NextResponse.json(
       {
-        statusCode: 1073741824,
-        status: true,
-        message: `Mock data due to API failure (Status: ${res.status})`,
-        data: {
-          total: 72760,
-          success: 70970,
-          pending: 0,
-          failed: 1790,
-        },
+        statusCode: 500,
+        status: false,
+        message: "Internal server error",
+        data: null,
       },
-      { status: 200 }
+      { status: 500 }
     );
   }
-} catch (error) {
-  console.error("API Error:", {
-    message: error instanceof Error ? error.message : "Unknown error",
-    stack: error instanceof Error ? error.stack : "No stack available",
-  });
-  return NextResponse.json(
-    {
-      statusCode: 500,
-      status: false,
-      message: "Internal server error",
-      data: null,
-    },
-    { status: 500 }
-  );
-}
 }
