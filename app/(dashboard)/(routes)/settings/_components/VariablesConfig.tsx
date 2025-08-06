@@ -1,15 +1,13 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Download, Search } from "lucide-react";
+import {  Search } from "lucide-react";
 import React, { useState } from "react";
 import { IoIosArrowDown, IoIosArrowUp } from "react-icons/io";
 import { TbEdit } from "react-icons/tb";
-import { ExportModal } from "./ServiceExport";
 import { Input } from "@/components/ui/input";
 
 function VariablesConfig() {
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [editMode, setEditMode] = useState<{
     [key: string]: { [key: string]: boolean };
@@ -40,13 +38,7 @@ function VariablesConfig() {
   });
   const [searchQuery, setSearchQuery] = useState("");
 
-  const fieldOptions = [
-    { label: "Bank Details Configuration Data", value: "BankDetailsConfig" },
-    { label: "Bank Support Configuration Data", value: "BankSupportConfig" },
-    { label: "Bank Settlement Configuration Data", value: "BankSettlementConfig" },
-    { label: "Bank Access Configuration Data", value: "BankAccessConfig" },
-    { label: "System Password Configuration Data", value: "SystemPasswordConfig" },
-  ];
+  
 
   const handleEditToggle = (section: string, field: string) => {
     setEditMode((prev) => ({
@@ -601,39 +593,6 @@ function VariablesConfig() {
     return forms[section as keyof typeof forms] || null;
   };
 
-  const handleExport = (data: { format: string; fields: Record<string, boolean> }) => {
-    const exportData = Object.entries({
-      BankDetailsConfig: {
-        "Bank Product Phone": "08100009099",
-        "Bank Sender Email": "redpay@example.com",
-      },
-      BankSupportConfig: {
-        "Bank Support Email": "redpay@example.com",
-        "Bank Support Phone": "08100009099",
-      },
-      BankSettlementConfig: {
-        "Bank Settlement Account": "102806908",
-        "Bank Settlement Account Name": "UBA/REDPAY VIRTUAL ACCOUNT SERVICE",
-      },
-      BankAccessConfig: {
-        "Bank Allowed Merchant Users": "10",
-        "Bank Allowed Transient Account (Hours)": "2",
-      },
-      SystemPasswordConfig: {
-        "System Password History Password Size": "5",
-        "System Password Minimum Length": "8",
-        "System Password Maximum Length": "25",
-        "System Password Expiration (Days)": "45",
-        "System Password Reset Expiration (Minutes)": "15",
-      },
-    })
-      .filter(([key]) => data.fields[key])
-      .map(([key, value]) => ({ [key]: value }));
-
-    console.log("Export data:", { ...data, exportData });
-    setIsExportModalOpen(false);
-  };
-
   const sections = [
     "Bank Details Configurations",
     "Bank Support Configurations",
@@ -667,7 +626,6 @@ function VariablesConfig() {
             />
             <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           </div>
-          <Button onClick={() => setIsExportModalOpen(true)}>Export <Download /></Button>
         </div>
       </div>
       <div className="space-y-4">
@@ -696,12 +654,6 @@ function VariablesConfig() {
           </React.Fragment>
         ))}
       </div>
-      <ExportModal
-        isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
-        onExport={handleExport}
-        fieldOptions={fieldOptions}
-      />
     </>
   );
 }

@@ -3,19 +3,16 @@
 import Default from "@/components/svg Icons/Default";
 import Service from "@/components/svg Icons/Service";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
 import React, { useState } from "react";
 import { IoIosArrowDown, IoIosArrowUp } from "react-icons/io";
 import { BiSave } from "react-icons/bi";
 import { TbEdit } from "react-icons/tb";
-import { ExportModal } from "./ServiceExport";
 import { AddServiceModal } from "./AddServiceModal";
-import { ResetModal } from "./ResetModal"; // Import the new modal
+import { ResetModal } from "./ResetModal"; 
 
 function Services() {
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isAddServiceModalOpen, setIsAddServiceModalOpen] = useState(false);
-  const [isResetModalOpen, setIsResetModalOpen] = useState(false); // New state for Reset modal
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false); 
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [editMode, setEditMode] = useState<{ [key: string]: boolean }>({
     "Open Account": false,
@@ -27,30 +24,6 @@ function Services() {
     { name: "Virtual Transaction", description: "Process inflow transaction via virtual account", feeAmount: "0.00", feeType: "Percentage with Cap", percentageCap: "500" },
     { name: "Merchant Setup", description: "Merchant setup fee", feeAmount: "0.00", feeType: "Fiat", percentageCap: "" },
   ]);
-  const fieldOptions = [
-    { label: "Service Name", value: "ServiceName" },
-    { label: "Service Fee", value: "ServiceFee" },
-    { label: "Service Type", value: "ServiceType" },
-    { label: "Service Cap", value: "ServiceCap" },
-    { label: "Description", value: "Description" },
-  ];
-
-  const handleExport = (data: { format: string; fields: Record<string, boolean> }) => {
-    const exportData = services
-      .map((service) =>
-        Object.fromEntries(
-          Object.entries({
-            ServiceName: service.name,
-            Description: service.description,
-            ServiceFee: service.feeAmount,
-            ServiceType: service.feeType,
-            ServiceCap: service.percentageCap,
-          }).filter(([key]) => data.fields[key])
-        )
-      );
-    console.log("Export data:", { ...data, exportData });
-    setIsExportModalOpen(false);
-  };
 
   const handleAddService = (data: { serviceName: string; description: string; feeAmount: string; feeType: string; percentageCap?: string }) => {
     setServices((prev) => [
@@ -205,7 +178,6 @@ function Services() {
           <Button variant="outline" onClick={() => setIsResetModalOpen(true)}>
             Reset to Default <Default />
           </Button>
-          <Button onClick={() => setIsExportModalOpen(true)}>Export <Download /></Button>
         </div>
       </div>
       <div className="space-y-4">
@@ -227,12 +199,6 @@ function Services() {
           </>
         ))}
       </div>
-      <ExportModal
-        isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
-        onExport={handleExport}
-        fieldOptions={fieldOptions}
-      />
       <AddServiceModal
         isOpen={isAddServiceModalOpen}
         onClose={() => setIsAddServiceModalOpen(false)}

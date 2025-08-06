@@ -20,17 +20,16 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Filter, Search, ChevronLeft, ChevronRight, CalendarIcon, Download } from "lucide-react";
+import { Filter, Search, ChevronLeft, ChevronRight, CalendarIcon } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@radix-ui/react-popover";
 import { Calendar } from "@/components/ui/calendar";
 import { BsThreeDots } from "react-icons/bs";
 import { FiEye } from "react-icons/fi";
 import { TbEdit } from "react-icons/tb";
 import { TbTrash } from "react-icons/tb";
-import { ExportModal } from "../../dashboard/_components/ExportModal";
 import { LuUserPlus } from "react-icons/lu";
 import { AddRoleModal } from "./AddRoleModal";
-import RolesPrivilegesDetailsModal from "./RolesPrivilegesDetailsModal"; // Adjust the import path as needed
+import RolesPrivilegesDetailsModal from "./RolesPrivilegesDetailsModal"; 
 
 export default function RolesPrivileges() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -40,7 +39,6 @@ export default function RolesPrivileges() {
     toDate: undefined as Date | undefined,
     sortBy: "default",
   });
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isAddRoleModalOpen, setIsAddRoleModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<{ id: number; name: string; description: string; createdAt: string; assignedMembers: string[]; lastModifiedBy: string; permissions: string[] } | null>(null);
@@ -149,38 +147,7 @@ export default function RolesPrivileges() {
     );
   }
 
-  const handleExport = (data: {
-    dateRangeFrom: string;
-    dateRangeTo: string;
-    format: string;
-    fields: Record<string, boolean>;
-  }) => {
-    const exportData = roles
-      .filter((role) => {
-        const fromDate = new Date(data.dateRangeFrom);
-        const toDate = new Date(data.dateRangeTo);
-        const roleDate = new Date(role.createdAt.replace(/(\d{2})\/(\d{2})\/(\d{4})/, "$3-$2-$1"));
-        return (!data.dateRangeFrom || !isNaN(fromDate.getTime()) && roleDate >= fromDate) &&
-               (!data.dateRangeTo || !isNaN(toDate.getTime()) && roleDate <= toDate);
-      })
-      .map((role) =>
-        Object.fromEntries(
-          Object.entries(role).filter(([key]) => data.fields[key])
-        )
-      );
-    console.log("Export data:", { ...data, exportData });
-    setIsExportModalOpen(false);
-  };
 
-  const fieldOptions = [
-    { label: "S/N", value: "id" },
-    { label: "Role Name", value: "name" },
-    { label: "Description", value: "description" },
-    { label: "Created At", value: "createdAt" },
-    { label: "Assigned Members", value: "assignedMembers" },
-    { label: "Last Modified By", value: "lastModifiedBy" },
-    { label: "Permissions", value: "permissions" },
-  ];
 
   const handleAddRoleSubmit = (role: { name: string; description: string; permissions: string[] }) => {
     const roleData = {
@@ -289,7 +256,6 @@ export default function RolesPrivileges() {
         </div>
         <div className="flex space-x-2">
           <Button variant="outline" onClick={() => setIsAddRoleModalOpen(true)}>Add Role <LuUserPlus className="h-4 w-4" /></Button>
-          <Button onClick={() => setIsExportModalOpen(true)}>Export <Download className="h-4 w-4" /></Button>
         </div>
       </div>
       <Table>
@@ -379,12 +345,6 @@ export default function RolesPrivileges() {
           </Select>
         </div>
       </div>
-      <ExportModal
-        isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
-        onExport={handleExport}
-        fieldOptions={fieldOptions}
-      />
       <AddRoleModal
         isOpen={isAddRoleModalOpen}
         onClose={() => setIsAddRoleModalOpen(false)}

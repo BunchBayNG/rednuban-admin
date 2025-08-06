@@ -1,10 +1,8 @@
-
 "use client";
 
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogOverlay, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { CalendarIcon } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@radix-ui/react-popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -27,16 +25,16 @@ export function ExportModal({ isOpen, onClose, onExport, fieldOptions }: ExportM
   const [dateRangeFrom, setDateRangeFrom] = useState<Date | undefined>(new Date());
   const [dateRangeTo, setDateRangeTo] = useState<Date | undefined>(new Date());
   const [format, setFormat] = useState("CSV");
-  const [fields, setFields] = useState<Record<string, boolean>>(
+  const [fields, ] = useState<Record<string, boolean>>(
     fieldOptions.reduce((acc, { value }) => ({ ...acc, [value]: true }), {})
   );
 
-  const allSelected = Object.values(fields).every((selected) => selected);
-  const handleSelectAll = () => {
-    setFields(
-      fieldOptions.reduce((acc, { value }) => ({ ...acc, [value]: !allSelected }), {})
-    );
-  };
+  // const allSelected = Object.values(fields).every((selected) => selected);
+  // const handleSelectAll = () => {
+  //   setFields(
+  //     fieldOptions.reduce((acc, { value }) => ({ ...acc, [value]: !allSelected }), {})
+  //   );
+  // };
 
   const handleExport = () => {
     onExport({
@@ -99,7 +97,7 @@ export function ExportModal({ isOpen, onClose, onExport, fieldOptions }: ExportM
           </div>
 
           {/* Fields to Export */}
-          <div>
+          {/* <div>
             <div className="flex justify-between items-center mb-2">
               <p className="text-xs font-light text-gray-500">Options to Select</p>
               <Button
@@ -125,7 +123,7 @@ export function ExportModal({ isOpen, onClose, onExport, fieldOptions }: ExportM
                 </label>
               ))}
             </div>
-          </div>
+          </div> */}
 
           {/* Format Selection and Export Button */}
           <div className="flex justify-between items-center">

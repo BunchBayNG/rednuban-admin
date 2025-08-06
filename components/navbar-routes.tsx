@@ -1,7 +1,6 @@
 "use client";
 
 import { SearchInput } from "./SearchInput";
-import Notification from "./svg Icons/Notifications";
 
 interface Merchant {
   sN: string;
@@ -27,7 +26,6 @@ export const NavbarRoutes = ({ merchants }: NavbarRoutesProps) => {
       </div>
       <div className="flex items-center gap-3">
         <SearchInput transactions={[]} vnubans={[]} merchants={merchants} />
-        <Notification />
       </div>
     </div>
   );
