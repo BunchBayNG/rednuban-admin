@@ -121,7 +121,7 @@ export default function DashboardPage() {
     {
       id: 'total-vnubans',
       title: 'Total vNUBANs',
-      value: vnubanData.error ? '1,900,789' : vnubanData.currentTotal.toLocaleString(),
+      value: vnubanData.error ? '' : vnubanData.currentTotal.toLocaleString(),
       change: vnubanData.error
         ? 22.7
         : vnubanData.previousTotal
