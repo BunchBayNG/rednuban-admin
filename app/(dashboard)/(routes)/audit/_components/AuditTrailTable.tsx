@@ -27,8 +27,45 @@ import {
 import { Filter, Search, ChevronLeft, ChevronRight, CalendarIcon } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@radix-ui/react-popover";
 import { Calendar } from "@/components/ui/calendar";
-import { useState } from "react";
-import { auditTrailData } from "@/lib/MockData";
+import { useState, useEffect } from "react";
+import Empty from "@/components/svg Icons/Empty";
+import Loader from "@/components/svg Icons/loader";
+
+interface AuditLog {
+  id: string;
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  updatedBy: string;
+  userId: string;
+  userName: string;
+  email: string;
+  userRole: string;
+  userIpAddress: string;
+  merchantName: string;
+  merchantOrganization: string;
+  merchantOrgId: string;
+  event: string;
+  userType: string;
+  description: string;
+  deleted: boolean;
+}
+
+interface AuditResponse {
+  statusCode: number;
+  status: boolean;
+  message: string;
+  data: {
+    totalElements: number;
+    totalPages: number;
+    size: number;
+    content: AuditLog[];
+    number: number;
+    numberOfElements: number;
+    first: boolean;
+    last: boolean;
+  };
+}
 
 export function AuditTrailTable() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -36,57 +73,107 @@ export function AuditTrailTable() {
   const [filter, setFilter] = useState({
     fromDate: undefined as Date | undefined,
     toDate: undefined as Date | undefined,
-    userRole: "All",
-    action: "All",
-    sortBy: "default",
+    userType: "All",
+    event: "All",
+    merchantName: "",
+    merchantOrgId: "",
+    status: "All",
+    sortBy: "createdAt",
+    sortOrder: "DESC",
   });
+  const [data, setData] = useState<AuditResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const itemsPerPage = 10;
-  const totalItems = auditTrailData.length;
 
-  // Filter and sort data
-  const filteredData = auditTrailData.filter((item) => {
-    const matchesSearch =
-      item.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.userRole.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.merchant.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDate =
-      (!filter.fromDate || new Date(item.time) >= filter.fromDate) &&
-      (!filter.toDate || new Date(item.time) <= filter.toDate);
-    const matchesUserRole =
-      filter.userRole === "All" ||
-      item.userRole === filter.userRole;
-    const matchesAction =
-      filter.action === "All" ||
-      item.action === filter.action;
-    return matchesSearch && matchesDate && matchesUserRole && matchesAction;
-  });
+  useEffect(() => {
+    const fetchAuditLogs = async () => {
+      setLoading(true);
+      setError(null);
 
-  const sortedData = [...filteredData].sort((a, b) => {
-    switch (filter.sortBy) {
-      case "user-a-z":
-        return a.user.localeCompare(b.user);
-      case "user-z-a":
-        return b.user.localeCompare(a.user);
-      case "time-newest":
-        return new Date(b.time).getTime() - new Date(a.time).getTime();
-      case "time-oldest":
-        return new Date(a.time).getTime() - new Date(b.time).getTime();
-      default:
-        return 0;
-    }
-  });
+      const params = new URLSearchParams({
+        page: (currentPage - 1).toString(), // API uses 0-based page
+        size: itemsPerPage.toString(),
+        search: searchTerm,
+        merchantOrgId: filter.merchantOrgId,
+        startDate: filter.fromDate ? formatDate(filter.fromDate) : "",
+        endDate: filter.toDate ? formatDate(filter.toDate) : "",
+        status: filter.status !== "All" ? filter.status : "",
+        sortBy: filter.sortBy,
+        sortOrder: filter.sortOrder,
+      });
 
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedData = sortedData.slice(startIndex, endIndex);
+      const url = `/api/audit-log?${params.toString()}`;
+      console.log("Client-side: Fetching audit logs", { url, queryParams: Object.fromEntries(params) });
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
+      try {
+        const response = await fetch(`${url}&cacheBust=${Date.now()}`, {
+          headers: {
+            "Cache-Control": "no-cache",
+          },
+        });
+
+        let result: AuditResponse;
+        const text = await response.text();
+        try {
+          result = JSON.parse(text);
+        } catch (error) {
+          console.error("Client-side: Invalid JSON response", { status: response.status, text: text.slice(0, 100) });
+          throw new Error(`Invalid response: Not JSON (status ${response.status})`);
+        }
+
+        console.log("Client-side: Audit logs response", {
+          status: response.status,
+          body: JSON.stringify(result, null, 2),
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${result.message || "Unknown"} (status ${result.statusCode})`);
+        }
+
+        if (!result.status) {
+          throw new Error(result.message || `Failed to fetch audit logs (status ${response.status})`);
+        }
+
+        setData(result);
+      } catch (err: any) {
+        console.error("Client-side: Error fetching audit logs", {
+          message: err.message || "Unknown error",
+          stack: err.stack || "No stack",
+        });
+        setError(err.message || "Failed to fetch audit logs");
+        setData(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAuditLogs();
+  }, [currentPage, searchTerm, filter]);
+
+  const formatDate = (date: Date) => date.toISOString().split("T")[0];
+
+  const filteredData = data?.data.content
+    ?.filter((item) => {
+      const matchesSearch =
+        item.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.merchantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.event.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesSearch;
+    })
+    ?.sort((a, b) => {
+      switch (filter.sortBy) {
+        case "userName":
+          return filter.sortOrder === "ASC" ? a.userName.localeCompare(b.userName) : b.userName.localeCompare(a.userName);
+        case "createdAt":
+          return filter.sortOrder === "ASC" ? new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime() : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        default:
+          return 0;
+      }
+    }) || [];
+
+  const totalPages = data?.data.totalPages || 1;
 
   const getPageNumbers = () => {
     const pages = [];
@@ -102,13 +189,40 @@ export function AuditTrailTable() {
     return pages;
   };
 
-  const handleResetDate = () => setFilter((prev) => ({ ...prev, fromDate: undefined, toDate: undefined }));
-  const handleResetUserRole = () => setFilter((prev) => ({ ...prev, userRole: "All" }));
-  const handleResetAction = () => setFilter((prev) => ({ ...prev, action: "All" }));
-  const handleResetSort = () => setFilter((prev) => ({ ...prev, sortBy: "default" }));
-  const handleResetAll = () => setFilter({ fromDate: undefined, toDate: undefined, userRole: "All", action: "All", sortBy: "default" });
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
 
-  function DatePicker({ id, date, onSelect, placeholder }: { id: string; date: Date | undefined; onSelect: (date: Date | undefined) => void; placeholder: string }) {
+  const handleResetDate = () => setFilter((prev) => ({ ...prev, fromDate: undefined, toDate: undefined }));
+  const handleResetUserType = () => setFilter((prev) => ({ ...prev, userType: "All" }));
+  const handleResetEvent = () => setFilter((prev) => ({ ...prev, event: "All" }));
+  const handleResetMerchantName = () => setFilter((prev) => ({ ...prev, merchantName: "" }));
+  const handleResetMerchantId = () => setFilter((prev) => ({ ...prev, merchantOrgId: "" }));
+  const handleResetStatus = () => setFilter((prev) => ({ ...prev, status: "All" }));
+  const handleResetAll = () =>
+    setFilter({
+      fromDate: undefined,
+      toDate: undefined,
+      userType: "All",
+      event: "All",
+      merchantName: "",
+      merchantOrgId: "",
+      status: "All",
+      sortBy: "createdAt",
+      sortOrder: "DESC",
+    });
+
+  function DatePicker({
+    id,
+    date,
+    onSelect,
+    placeholder,
+  }: {
+    id: string;
+    date: Date | undefined;
+    onSelect: (date: Date | undefined) => void;
+    placeholder: string;
+  }) {
     const [open, setOpen] = useState(false);
     const [month, setMonth] = useState<Date | undefined>(date);
 
@@ -127,7 +241,9 @@ export function AuditTrailTable() {
               variant="outline"
               className="w-full justify-start text-left font-normal pl-3 pr-10 py-2 border rounded-md text-sm bg-[#F8F8F8] dark:bg-gray-700"
             >
-              <span>{date ? date.toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" }) : placeholder}</span>
+              <span>
+                {date ? date.toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" }) : placeholder}
+              </span>
               <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
             </Button>
           </PopoverTrigger>
@@ -194,37 +310,14 @@ export function AuditTrailTable() {
                 </div>
                 <div className="flex flex-col space-y-2">
                   <div className="flex justify-between">
-                    <label className="text-sm">Sort By</label>
-                    <Button variant="link" className="text-red-500 p-0 h-auto" onClick={handleResetSort}>
+                    <label className="text-sm">User Type</label>
+                    <Button variant="link" className="text-red-500 p-0 h-auto" onClick={handleResetUserType}>
                       Reset
                     </Button>
                   </div>
                   <Select
-                    value={filter.sortBy}
-                    onValueChange={(value) => setFilter((prev) => ({ ...prev, sortBy: value }))}
-                  >
-                    <SelectTrigger className="w-full bg-[#F8F8F8] dark:bg-gray-700 border-0 rounded">
-                      <SelectValue placeholder="Default" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="default">Default</SelectItem>
-                      <SelectItem value="user-a-z">User (A-Z)</SelectItem>
-                      <SelectItem value="user-z-a">User (Z-A)</SelectItem>
-                      <SelectItem value="time-newest">Time (Newest First)</SelectItem>
-                      <SelectItem value="time-oldest">Time (Oldest First)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex flex-col space-y-2">
-                  <div className="flex justify-between">
-                    <label className="text-sm">User Role</label>
-                    <Button variant="link" className="text-red-500 p-0 h-auto" onClick={handleResetUserRole}>
-                      Reset
-                    </Button>
-                  </div>
-                  <Select
-                    value={filter.userRole}
-                    onValueChange={(value) => setFilter((prev) => ({ ...prev, userRole: value }))}
+                    value={filter.userType}
+                    onValueChange={(value) => setFilter((prev) => ({ ...prev, userType: value }))}
                   >
                     <SelectTrigger className="w-full bg-[#F8F8F8] dark:bg-gray-700 border-0 rounded">
                       <SelectValue placeholder="All" />
@@ -240,14 +333,14 @@ export function AuditTrailTable() {
                 </div>
                 <div className="flex flex-col space-y-2">
                   <div className="flex justify-between">
-                    <label className="text-sm">Action</label>
-                    <Button variant="link" className="text-red-500 p-0 h-auto" onClick={handleResetAction}>
+                    <label className="text-sm">Event</label>
+                    <Button variant="link" className="text-red-500 p-0 h-auto" onClick={handleResetEvent}>
                       Reset
                     </Button>
                   </div>
                   <Select
-                    value={filter.action}
-                    onValueChange={(value) => setFilter((prev) => ({ ...prev, action: value }))}
+                    value={filter.event}
+                    onValueChange={(value) => setFilter((prev) => ({ ...prev, event: value }))}
                   >
                     <SelectTrigger className="w-full bg-[#F8F8F8] dark:bg-gray-700 border-0 rounded">
                       <SelectValue placeholder="All" />
@@ -263,11 +356,80 @@ export function AuditTrailTable() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="flex flex-col space-y-2">
+                  <div className="flex justify-between">
+                    <label className="text-sm">Merchant Name</label>
+                    <Button variant="link" className="text-red-500 p-0 h-auto" onClick={handleResetMerchantName}>
+                      Reset
+                    </Button>
+                  </div>
+                  <Input
+                    value={filter.merchantName}
+                    onChange={(e) => setFilter((prev) => ({ ...prev, merchantName: e.target.value }))}
+                    placeholder="Enter merchant name"
+                    className="bg-[#F8F8F8] dark:bg-gray-700 border-0 rounded"
+                  />
+                </div>
+                <div className="flex flex-col space-y-2">
+                  <div className="flex justify-between">
+                    <label className="text-sm">Merchant Org ID</label>
+                    <Button variant="link" className="text-red-500 p-0 h-auto" onClick={handleResetMerchantId}>
+                      Reset
+                    </Button>
+                  </div>
+                  <Input
+                    value={filter.merchantOrgId}
+                    onChange={(e) => setFilter((prev) => ({ ...prev, merchantOrgId: e.target.value }))}
+                    placeholder="Enter merchant Org ID"
+                    className="bg-[#F8F8F8] dark:bg-gray-700 border-0 rounded"
+                  />
+                </div>
+                <div className="flex flex-col space-y-2">
+                  <div className="flex justify-between">
+                    <label className="text-sm">Status</label>
+                    <Button variant="link" className="text-red-500 p-0 h-auto" onClick={handleResetStatus}>
+                      Reset
+                    </Button>
+                  </div>
+                  <Select
+                    value={filter.status}
+                    onValueChange={(value) => setFilter((prev) => ({ ...prev, status: value }))}
+                  >
+                    <SelectTrigger className="w-full bg-[#F8F8F8] dark:bg-gray-700 border-0 rounded">
+                      <SelectValue placeholder="All" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="All">All</SelectItem>
+                      <SelectItem value="SUCCESS">SUCCESS</SelectItem>
+                      <SelectItem value="FAILED">FAILED</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col space-y-2">
+                  <label className="text-sm">Sort By</label>
+                  <Select
+                    value={`${filter.sortBy}-${filter.sortOrder}`}
+                    onValueChange={(value) => {
+                      const [sortBy, sortOrder] = value.split("-");
+                      setFilter((prev) => ({ ...prev, sortBy, sortOrder }));
+                    }}
+                  >
+                    <SelectTrigger className="w-full bg-[#F8F8F8] dark:bg-gray-700 border-0 rounded">
+                      <SelectValue placeholder="Sort by createdAt (DESC)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="createdAt-ASC">Created At (ASC)</SelectItem>
+                      <SelectItem value="createdAt-DESC">Created At (DESC)</SelectItem>
+                      <SelectItem value="userName-ASC">User Name (ASC)</SelectItem>
+                      <SelectItem value="userName-DESC">User Name (DESC)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="flex justify-between mt-4">
                   <Button variant="outline" onClick={handleResetAll}>
                     Reset All
                   </Button>
-                  <Button className="bg-red-500 text-white hover:bg-red-600" onClick={() => {}}>
+                  <Button className="bg-red-500 text-white hover:bg-red-600" onClick={() => setCurrentPage(1)}>
                     Apply Now
                   </Button>
                 </div>
@@ -276,7 +438,7 @@ export function AuditTrailTable() {
           </DropdownMenu>
           <div className="relative w-[300px]">
             <Input
-              placeholder="Search User, Email, Role, Action..."
+              placeholder="Search User, Merchant, Event..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-3 pr-10 bg-[#F8F8F8] dark:bg-background border-0"
@@ -341,9 +503,7 @@ export function AuditTrailTable() {
             <TableRow>
               <TableHead>S/N</TableHead>
               <TableHead>User</TableHead>
-              <TableHead>Email</TableHead>
               <TableHead>User Role</TableHead>
-              <TableHead>User IP Address</TableHead>
               <TableHead>Merchant</TableHead>
               <TableHead>Action</TableHead>
               <TableHead>Description</TableHead>
@@ -351,19 +511,53 @@ export function AuditTrailTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedData.map((item) => (
-              <TableRow key={item.sN}>
-                <TableCell>{item.sN}</TableCell>
-                <TableCell>{item.user}</TableCell>
-                <TableCell>{item.email}</TableCell>
-                <TableCell>{item.userRole}</TableCell>
-                <TableCell>{item.userIpAddress}</TableCell>
-                <TableCell>{item.merchant}</TableCell>
-                <TableCell>{item.action}</TableCell>
-                <TableCell>{item.description}</TableCell>
-                <TableCell>{item.time}</TableCell>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center">
+                <div className="relative w-17 p-4 h-17 mx-auto my-5">
+                    <div className="absolute inset-0 border-4 border-transparent border-t-[#C80000] rounded-full animate-spin"></div>
+                    <div className="absolute inset-0 flex items-center m-3 justify-center">
+                      <Loader />
+                    </div>
+                  </div>
+                </TableCell>
               </TableRow>
-            ))}
+            ) : error ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center text-red-500">
+                  Error: {error}
+                </TableCell>
+              </TableRow>
+            ) : data?.data.content.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center">
+                <div className="text-center flex flex-col items-center gap-4 m-3 p-3">
+                    <Empty />
+                    <p className="text-muted-foreground">No audit logs found</p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              data?.data.content.map((item, index) => (
+                <TableRow key={item.id}>
+                  <TableCell>{(currentPage - 1) * itemsPerPage + index + 1}</TableCell>
+                  <TableCell>{item.userName}</TableCell>
+                  <TableCell>{item.userRole}</TableCell>
+                  <TableCell>{item.merchantName || "N/A"}</TableCell>
+                  <TableCell>{item.event}</TableCell>
+                  <TableCell>{item.description || item.event} {item.deleted ? "(Deleted)" : item.userIpAddress ? "(IP: " + item.userIpAddress + ")" : ""}</TableCell>
+                  <TableCell>
+                    {new Date(item.createdAt).toLocaleString("en-US", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

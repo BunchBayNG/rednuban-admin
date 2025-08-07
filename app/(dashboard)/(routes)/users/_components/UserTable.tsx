@@ -36,6 +36,8 @@ import Download from "@/components/svg Icons/Download";
 import ConfirmActionModal from "./ConfirmActionModal";
 import { toast } from "sonner";
 import UserDetailsModal from "./UsersDetailsModal";
+import Empty from "@/components/svg Icons/Empty";
+import Loader from "@/components/svg Icons/loader";
 
 export function UserTable({ refetchTrigger }: { refetchTrigger: number }) {
   const [currentPage, setCurrentPage] = useState(1);
@@ -47,37 +49,41 @@ export function UserTable({ refetchTrigger }: { refetchTrigger: number }) {
     sortBy: "default",
     status: "",
   });
-   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [actionType, setActionType] = useState<"Enable" | "Disable">("Disable");
   const [isUserDetailsOpen, setIsUserDetailsOpen] = useState(false);
-   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [users, setUsers] = useState<any[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 10;
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchUsers = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const fromDate = filter.fromDate ? filter.fromDate.toISOString().split("T")[0] : "";
       const toDate = filter.toDate ? filter.toDate.toISOString().split("T")[0] : "";
       const status = filter.status === "Enabled" ? "true" : filter.status === "Disabled" ? "false" : "";
       const res = await fetch(
-        `/api/get-staff?merchantAdminId=${encodeURIComponent("MERCHANT_ADMIN_ID")}&page=${currentPage}&size=${itemsPerPage}&search=${encodeURIComponent(searchTerm)}&fromDate=${fromDate}&toDate=${toDate}&role=${encodeURIComponent(filter.role)}&status=${encodeURIComponent(status)}&sortBy=${encodeURIComponent(filter.sortBy)}`,
+        `/api/get-staff?merchantAdminId=${encodeURIComponent("MERCHANT_ADMIN_ID")}&search=${encodeURIComponent(searchTerm)}&fromDate=${fromDate}&toDate=${toDate}&role=${encodeURIComponent(filter.role)}&status=${encodeURIComponent(status)}&sortBy=${encodeURIComponent(filter.sortBy)}`,
         {
           headers: { Authorization: `Bearer ${localStorage.getItem("accessToken") || ""}` },
         }
       );
       const data = await res.json();
-      if (data.success) {
-        setUsers(data.data);
-        setTotalItems(data.total);
+      if (res.ok && data.status) {
+        setUsers(data.data || []);
+        setTotalItems(data.data.length || 0);
       } else {
-        toast.error(data.error || "Failed to fetch staff");
+        setError(data.message || "Failed to fetch staff");
       }
     } catch (error) {
-      toast.error("Failed to fetch staff");
       console.error("Fetch staff error:", error);
+      setError("Failed to fetch staff");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -86,7 +92,16 @@ export function UserTable({ refetchTrigger }: { refetchTrigger: number }) {
   }, [currentPage, searchTerm, filter, refetchTrigger]);
 
   const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const paginatedData = users;
+  const paginatedData = users.map((item, index) => ({
+    sN: (currentPage - 1) * itemsPerPage + index + 1,
+    userID: item.id,
+    fullName: `${item.firstName || ""} ${item.lastName || ""}`.trim(),
+    email: item.email || "",
+    role: item.userType || "",
+    status: item.enabled ? "Enabled" : "Disabled",
+    createdAt: new Date().toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" }), // Placeholder
+    logoUrl: item.logoUrl || "/images/avatar-placeholder.jpg",
+  }));
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -158,7 +173,6 @@ export function UserTable({ refetchTrigger }: { refetchTrigger: number }) {
     );
   }
 
-   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleStatusChange = (user: any, newStatus: "Enabled" | "Disabled") => {
     setSelectedUser(user);
     setActionType(newStatus === "Enabled" ? "Enable" : "Disable");
@@ -191,7 +205,6 @@ export function UserTable({ refetchTrigger }: { refetchTrigger: number }) {
     setSelectedUser(null);
   };
 
-   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleChangeRole = async (user: any, newRole: string) => {
     try {
       const res = await fetch("/api/assign-role", {
@@ -221,7 +234,6 @@ export function UserTable({ refetchTrigger }: { refetchTrigger: number }) {
     }
   };
 
-   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleViewUser = (user: any) => {
     setSelectedUser(user);
     setIsUserDetailsOpen(true);
@@ -229,6 +241,7 @@ export function UserTable({ refetchTrigger }: { refetchTrigger: number }) {
 
   return (
     <div className="w-full relative">
+      {error && <div className="text-red-500 text-center my-4">{error}</div>}
       <div className="flex justify-between items-center mb-4 space-x-4">
         <div className="flex items-center space-x-4">
           <DropdownMenu>
@@ -430,70 +443,92 @@ export function UserTable({ refetchTrigger }: { refetchTrigger: number }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedData.map((item) => (
-              <TableRow key={item.userID}>
-                <TableCell>{item.sN}</TableCell>
-                <TableCell className="flex items-center space-x-2">
-                  <Avatar>
-                    <AvatarImage src={item.logoUrl || "/images/avatar-placeholder.jpg"} alt={item.fullName} />
-                    <AvatarFallback>{getInitials(item.fullName)}</AvatarFallback>
-                  </Avatar>
-                  <span>{item.fullName}</span>
-                </TableCell>
-                <TableCell>{item.email}</TableCell>
-                <TableCell>{item.role}</TableCell>
-                <TableCell>
-                  <span className="flex items-center">
-                    <span
-                      className="w-2 h-2 rounded-full mr-2"
-                      style={{
-                        backgroundColor: item.status === "Enabled" ? "#4CAF50" : "#FF4444",
-                      }}
-                    />
-                    <span
-                      style={{
-                        color: item.status === "Enabled" ? "#4CAF50" : "#FF4444",
-                      }}
-                    >
-                      {item.status}
-                    </span>
-                  </span>
-                </TableCell>
-                <TableCell>{item.createdAt}</TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <BsThreeDots className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem onClick={() => handleViewUser(item)}><View /> View</DropdownMenuItem>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <DropdownMenuItem><View /> Change Role</DropdownMenuItem>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          <DropdownMenuItem onClick={() => handleChangeRole(item, "Super Admin")}>Super Admin</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleChangeRole(item, "Admin")}>Admin</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleChangeRole(item, "Collections Team Member")}>Collections Team Member</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleChangeRole(item, "Merchant Access Authorizer")}>Merchant Access Authorizer</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleChangeRole(item, "Merchant Access Initiator")}>
-                            Merchant Access Initiator
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                      {item.status === "Enabled" ? (
-                        <DropdownMenuItem onClick={() => handleStatusChange(item, "Disabled")}><View /> Disable</DropdownMenuItem>
-                      ) : (
-                        <DropdownMenuItem onClick={() => handleStatusChange(item, "Enabled")}><View /> Enable</DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem onClick={() => console.log("Download", item.userID)}><Download /> Download</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={7}>
+                  <div className="relative w-17 p-4 h-17 mx-auto my-5">
+                    <div className="absolute inset-0 border-4 border-transparent border-t-[#C80000] rounded-full animate-spin"></div>
+                    <div className="absolute inset-0 flex items-center m-3 justify-center">
+                      <Loader />
+                    </div>
+                  </div>
                 </TableCell>
               </TableRow>
-            ))}
+            ) : error ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center text-red-500 my-4">
+                  {error}
+                </TableCell>
+              </TableRow>
+            ) : paginatedData.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center">
+                  <div className="text-center flex flex-col items-center gap-4 m-3 p-3">
+                    <Empty />
+                    <p className="text-muted-foreground">No Staff found</p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              paginatedData.map((item) => (
+                <TableRow key={item.userID}>
+                  <TableCell>{item.sN}</TableCell>
+                  <TableCell className="flex items-center space-x-2">
+                    <Avatar>
+                      <AvatarImage src={item.logoUrl || "/images/avatar-placeholder.jpg"} alt={item.fullName} />
+                      <AvatarFallback>{getInitials(item.fullName)}</AvatarFallback>
+                    </Avatar>
+                    <span>{item.fullName}</span>
+                  </TableCell>
+                  <TableCell>{item.email}</TableCell>
+                  <TableCell>{item.role}</TableCell>
+                  <TableCell>
+                    <span className="flex items-center">
+                      <span
+                        className="w-2 h-2 rounded-full mr-2"
+                        style={{ backgroundColor: item.status === "Enabled" ? "#4CAF50" : "#FF4444" }}
+                      />
+                      <span style={{ color: item.status === "Enabled" ? "#4CAF50" : "#FF4444" }}>
+                        {item.status}
+                      </span>
+                    </span>
+                  </TableCell>
+                  <TableCell>{item.createdAt}</TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <BsThreeDots className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem onClick={() => handleViewUser(item)}><View /> View</DropdownMenuItem>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <DropdownMenuItem><View /> Change Role</DropdownMenuItem>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuItem onClick={() => handleChangeRole(item, "Super Admin")}>Super Admin</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleChangeRole(item, "Admin")}>Admin</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleChangeRole(item, "Collections Team Member")}>Collections Team Member</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleChangeRole(item, "Merchant Access Authorizer")}>Merchant Access Authorizer</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleChangeRole(item, "Merchant Access Initiator")}>
+                              Merchant Access Initiator
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                        {item.status === "Enabled" ? (
+                          <DropdownMenuItem onClick={() => handleStatusChange(item, "Disabled")}><View /> Disable</DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem onClick={() => handleStatusChange(item, "Enabled")}><View /> Enable</DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={() => console.log("Download", item.userID)}><Download /> Download</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

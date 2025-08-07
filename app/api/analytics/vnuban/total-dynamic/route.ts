@@ -126,15 +126,7 @@ export async function GET(request: NextRequest) {
     }
 
     console.error("All API attempts failed. Returning mock data.", lastError);
-    return NextResponse.json(
-      {
-        statusCode: 1073741824,
-        status: true,
-        message: "Mock data due to API failure",
-        data: 9007199254740991,
-      },
-      { status: 200 }
-    );
+ 
   } catch (error) {
     console.error("Unexpected error in route:", error);
     return NextResponse.json(
