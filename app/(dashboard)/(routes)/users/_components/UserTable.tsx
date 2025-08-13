@@ -49,10 +49,12 @@ export function UserTable({ refetchTrigger }: { refetchTrigger: number }) {
     sortBy: "default",
     status: "",
   });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [actionType, setActionType] = useState<"Enable" | "Disable">("Disable");
   const [isUserDetailsOpen, setIsUserDetailsOpen] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [users, setUsers] = useState<any[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 10;
@@ -173,6 +175,7 @@ export function UserTable({ refetchTrigger }: { refetchTrigger: number }) {
     );
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleStatusChange = (user: any, newStatus: "Enabled" | "Disabled") => {
     setSelectedUser(user);
     setActionType(newStatus === "Enabled" ? "Enable" : "Disable");
@@ -205,6 +208,7 @@ export function UserTable({ refetchTrigger }: { refetchTrigger: number }) {
     setSelectedUser(null);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleChangeRole = async (user: any, newRole: string) => {
     try {
       const res = await fetch("/api/assign-role", {
@@ -234,6 +238,7 @@ export function UserTable({ refetchTrigger }: { refetchTrigger: number }) {
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleViewUser = (user: any) => {
     setSelectedUser(user);
     setIsUserDetailsOpen(true);

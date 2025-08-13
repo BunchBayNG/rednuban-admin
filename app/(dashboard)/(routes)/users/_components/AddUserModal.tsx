@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -25,7 +24,7 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [role, setRole] = useState<string | null>(null); // Initialize as null, but will be set via Select
+  const [role, setRole] = useState<string | null>(null);
   const [status, setStatus] = useState("Enabled");
 
   const handleSubmit = async () => {
@@ -34,39 +33,36 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
       return;
     }
 
-    const accessToken = localStorage.getItem("accessToken");
-    const organizationId = localStorage.getItem("organizationId");
-
-    if (!accessToken) {
-      toast.error("Session expired. Please log in again.");
-      return;
-    }
-    if (!organizationId) {
-      toast.error("Organization ID not found. Please log in again.");
-      return;
-    }
+    const cookies = document.cookie.split("; ").reduce((acc, cookie) => {
+      const [name, value] = cookie.split("=");
+      acc[name] = value;
+      return acc;
+    }, {} as Record<string, string>);
+    console.log("Client Cookies:", { cookies });
 
     try {
+      const payload = {
+        firstName,
+        lastName,
+        email,
+        role,
+        message: `Welcome, ${firstName}! You've been invited as a ${role}.`,
+      };
+      console.log("Submitting payload:", payload);
+
       const res = await fetch("/api/invite-user", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({
-          organizationId,
-          userId: `USR-${Date.now()}`, // Generate unique userId
-          firstName,
-          lastName,
-          email,
-          role: null, // Force role to null regardless of selection
-          phoneNumber: phoneNumber || undefined, // Optional
-          message: `Welcome, ${firstName}! You've been invited as a ${role || "new user"}.`,
-        }),
+        credentials: "include",
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
-      if (data.success) {
+      console.log("Invite User Response:", data);
+
+      if (res.ok && data.success) {
         toast.success("User invited successfully!");
         onSuccess();
         onClose();
@@ -74,14 +70,14 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
         setLastName("");
         setEmail("");
         setPhoneNumber("");
-        setRole(null); // Reset to null
+        setRole(null);
         setStatus("Enabled");
       } else {
-        toast.error(data.error || "Failed to send invite");
+        toast.error(data.error || data.message || "Failed to send invite");
       }
     } catch (error) {
-      toast.error("Failed to send invite");
       console.error("Invite error:", error);
+      toast.error("Failed to send invite");
     }
   };
 
@@ -151,7 +147,7 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Super Admin">Super Admin</SelectItem>
-                <SelectItem value="Admin">Admin</SelectItem>
+                <SelectItem value="RedTech_Staff">RedTech_Staff</SelectItem>
                 <SelectItem value="Collections Team Member">Collections Team Member</SelectItem>
                 <SelectItem value="Merchant Access Authorizer">Merchant Access Authorizer</SelectItem>
                 <SelectItem value="Merchant Access Initiator">Merchant Access Initiator</SelectItem>

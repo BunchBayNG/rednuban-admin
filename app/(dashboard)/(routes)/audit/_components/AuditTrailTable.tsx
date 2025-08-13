@@ -120,6 +120,7 @@ export function AuditTrailTable() {
           result = JSON.parse(text);
         } catch (error) {
           console.error("Client-side: Invalid JSON response", { status: response.status, text: text.slice(0, 100) });
+          console.log(error);
           throw new Error(`Invalid response: Not JSON (status ${response.status})`);
         }
 
@@ -137,7 +138,8 @@ export function AuditTrailTable() {
         }
 
         setData(result);
-      } catch (err: any) {
+      } // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      catch (err: any) {
         console.error("Client-side: Error fetching audit logs", {
           message: err.message || "Unknown error",
           stack: err.stack || "No stack",
@@ -154,24 +156,24 @@ export function AuditTrailTable() {
 
   const formatDate = (date: Date) => date.toISOString().split("T")[0];
 
-  const filteredData = data?.data.content
-    ?.filter((item) => {
-      const matchesSearch =
-        item.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.merchantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.event.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesSearch;
-    })
-    ?.sort((a, b) => {
-      switch (filter.sortBy) {
-        case "userName":
-          return filter.sortOrder === "ASC" ? a.userName.localeCompare(b.userName) : b.userName.localeCompare(a.userName);
-        case "createdAt":
-          return filter.sortOrder === "ASC" ? new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime() : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        default:
-          return 0;
-      }
-    }) || [];
+  // const filteredData = data?.data.content
+  //   ?.filter((item) => {
+  //     const matchesSearch =
+  //       item.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //       item.merchantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //       item.event.toLowerCase().includes(searchTerm.toLowerCase());
+  //     return matchesSearch;
+  //   })
+  //   ?.sort((a, b) => {
+  //     switch (filter.sortBy) {
+  //       case "userName":
+  //         return filter.sortOrder === "ASC" ? a.userName.localeCompare(b.userName) : b.userName.localeCompare(a.userName);
+  //       case "createdAt":
+  //         return filter.sortOrder === "ASC" ? new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime() : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  //       default:
+  //         return 0;
+  //     }
+  //   }) || [];
 
   const totalPages = data?.data.totalPages || 1;
 

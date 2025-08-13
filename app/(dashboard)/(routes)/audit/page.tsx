@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
-import { auditTrailData } from "@/lib/MockData";
 import { AuditTrailTable } from "./_components/AuditTrailTable";
 import { Card, CardContent } from "@/components/ui/card";
 import { ExportModal } from "../dashboard/_components/ExportModal";
@@ -24,32 +23,6 @@ export default function AuditTrailPage() {
     { label: "Time", value: "time" },
   ];
 
-  const handleExport = (data: {
-    dateRangeFrom: string;
-    dateRangeTo: string;
-    format: string;
-    fields: Record<string, boolean>;
-  }) => {
-    const exportData = auditTrailData
-      .filter((item) => {
-        const fromDate = new Date(data.dateRangeFrom);
-        const toDate = new Date(data.dateRangeTo);
-        const itemDate = new Date(item.time.replace(/(\d{2})\/(\d{2})\/(\d{4})/, "$3-$2-$1"));
-        return (!data.dateRangeFrom || !isNaN(fromDate.getTime()) && itemDate >= fromDate) &&
-               (!data.dateRangeTo || !isNaN(toDate.getTime()) && itemDate <= toDate);
-      })
-      .map((item) =>
-        Object.fromEntries(
-          Object.entries(item).filter(([key]) => data.fields[key])
-        )
-      );
-    console.log("Export data:", { ...data, exportData });
-    // const today = new Date();
-    // const formattedDate = today.toISOString().split("T")[0].replace(/-/g, ""); // 20250610
-    // const formattedTime = today.toTimeString().split(" ")[0].replace(/:/g, ""); // 1410
-    // const filename = `AuditTrail_${formattedDate}_${formattedTime}.csv`;
-    setIsExportModalOpen(false);
-  };
 
   return (
     <div className="min-h-screen mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -76,7 +49,7 @@ export default function AuditTrailPage() {
       <ExportModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
-        onExport={handleExport}
+        endpointPrefix="audit-logs"
         fieldOptions={fieldOptions}
       />
     </div>

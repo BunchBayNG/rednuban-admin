@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
       data = JSON.parse(text);
     } catch (error) {
       console.error("External API GET: Invalid JSON response", { status: res.status, text: text.slice(0, 100) });
+      console.log(error);
       return NextResponse.json(
         { statusCode: 502, status: false, message: `Invalid response from external API: Not JSON (status ${res.status})`, data: null },
         { status: 502 }

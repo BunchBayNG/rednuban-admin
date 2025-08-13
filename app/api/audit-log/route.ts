@@ -115,6 +115,7 @@ export async function GET(request: NextRequest) {
       data = JSON.parse(text);
     } catch (error) {
       console.error("Audit Logs API: Invalid JSON response", { status: response.status, text: text.slice(0, 100) });
+      console.log(error);
       return NextResponse.json(
         {
           statusCode: 502,

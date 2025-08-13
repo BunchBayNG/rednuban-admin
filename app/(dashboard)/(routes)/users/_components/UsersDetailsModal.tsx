@@ -25,10 +25,11 @@ interface UserDetailsModalProps {
     createdAt: string;
     logoUrl: string;
   } | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setSelectedUser: (user: any | null) => void;
 }
 
-export default function UserDetailsModal({ isOpen, onClose, user, setSelectedUser }: UserDetailsModalProps) {
+export default function UserDetailsModal({ isOpen, onClose, user }: UserDetailsModalProps) {
   if (!user || !isOpen) return null;
 
   const getInitials = (name: string) => {

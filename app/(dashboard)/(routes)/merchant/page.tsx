@@ -28,16 +28,6 @@ export default function MerchantPage() {
     { label: "Action", value: "action" },
   ];
 
-  const handleExport = (data: {
-    dateRangeFrom: string;
-    dateRangeTo: string;
-    format: string;
-    fields: Record<string, boolean>;
-  }) => {
-    console.log("Export data:", { ...data });
-    setIsExportModalOpen(false);
-  };
-
   const handleRefreshTable = () => {
     setRefreshKey((prev) => prev + 1); // Trigger table refresh
   };
@@ -76,10 +66,9 @@ export default function MerchantPage() {
       <ExportModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
-        onExport={handleExport}
+        endpointPrefix="merchants"
         fieldOptions={fieldOptions}
       />
-
       {/* Create Merchant Modal */}
       <CreateMerchantModal
         isOpen={isCreateMerchantModalOpen}

@@ -1,33 +1,72 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const authHeader = request.headers.get("Authorization");
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get("accessToken")?.value;
+    const userId = cookieStore.get("userId")?.value;
+    const organizationId = cookieStore.get("organizationId")?.value;
 
     console.log("Invite User - Incoming Request:", {
       url: request.url,
       method: request.method,
-      headers: { Authorization: authHeader },
+      cookies: { accessToken: accessToken ? "Present" : "Missing", userId, organizationId },
       body,
     });
 
-    if (!authHeader) {
-      console.error("No Authorization header provided");
-      return NextResponse.json({ error: "Authorization header missing" }, { status: 401 });
+    if (!accessToken) {
+      console.error("No accessToken found in cookies");
+      return NextResponse.json({ error: "Session expired. Please log in again." }, { status: 401 });
     }
 
-    const apiUrl = "https://redcollection.onrender.com/invite-user";
+    if (!userId) {
+      console.error("No userId found in cookies");
+      return NextResponse.json({ error: "User ID not found. Please log in again." }, { status: 400 });
+    }
+
+    if (!organizationId || organizationId === "") {
+      console.error("No organizationId found in cookies or empty");
+      return NextResponse.json({ error: "Organization ID not found. Please log in again." }, { status: 400 });
+    }
+
+    if (!body.firstName || !body.lastName || !body.email || !body.role) {
+      console.error("Missing required fields in request body:", body);
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    const apiUrl = "https://redcollection.onrender.com/api/v1/users/invite";
     console.log("External API URL:", apiUrl);
-    console.log("Outgoing Request Headers:", { Authorization: authHeader });
+    console.log("Outgoing Request:", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body: {
+        organizationId,
+        userId,
+        firstName: body.firstName,
+        lastName: body.lastName,
+        email: body.email,
+        role: body.role,
+        message: body.message,
+      },
+    });
 
     const res = await fetch(apiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: authHeader,
+        Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify(body),
+      credentials: "include",
+      body: JSON.stringify({
+        organizationId,
+        userId,
+        firstName: body.firstName,
+        lastName: body.lastName,
+        email: body.email,
+        role: body.role,
+        message: body.message,
+      }),
     });
 
     const data = await res.json();

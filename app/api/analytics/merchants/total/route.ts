@@ -6,14 +6,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const params = Object.fromEntries(searchParams.entries());
 
-    const queryParams = {
-      startDate: params.startDate || "",
-      endDate: params.endDate || "",
-      merchantOrgId: params.merchantOrgId || "",
-    };
+    const startDate = params.startDate || "";
+    const endDate = params.endDate || "";
+    const merchantOrgId = params.merchantOrgId || "";
 
-    // Validate required parameters
-    if (!queryParams.startDate || !queryParams.endDate) {
+    // Validate required params
+    if (!startDate || !endDate) {
       return NextResponse.json(
         {
           statusCode: 400,
@@ -26,7 +24,7 @@ export async function GET(request: NextRequest) {
     }
 
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateRegex.test(queryParams.startDate) || !dateRegex.test(queryParams.endDate)) {
+    if (!dateRegex.test(startDate) || !dateRegex.test(endDate)) {
       return NextResponse.json(
         {
           statusCode: 400,
@@ -38,8 +36,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const start = new Date(queryParams.startDate);
-    const end = new Date(queryParams.endDate);
+    const start = new Date(startDate);
+    const end = new Date(endDate);
     const now = new Date();
     const minDate = new Date("2020-01-01");
 
@@ -70,12 +68,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const isoStartDate = `${queryParams.startDate}T00:00:00Z`;
-    const isoEndDate = `${queryParams.endDate}T00:00:00Z`;
+    // Format for $date-time: ISO 8601 with time
+    const isoStart = new Date(startDate).toISOString(); // "2025-07-08T00:00:00.000Z"
+    const isoEnd = new Date(endDate).toISOString();
 
-    const externalUrl = `https://redcollection.onrender.com/api/v1/analytics/transactions/total-merchants?startDate=${isoStartDate}&endDate=${isoEndDate}${
-      queryParams.merchantOrgId ? `&merchantOrgId=${queryParams.merchantOrgId}` : ""
-    }`;
+    let externalUrl = `https://redcollection.onrender.com/api/v1/analytics/transactions/total-merchants?startDate=${isoStart}&endDate=${isoEnd}`;
+    if (merchantOrgId) {
+      externalUrl += `&merchantOrgId=${merchantOrgId}`;
+    }
+
+    console.log("Calling external API:", externalUrl);
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
 
     const response = await fetch(externalUrl, {
       method: "GET",
@@ -83,10 +88,15 @@ export async function GET(request: NextRequest) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
-      signal: AbortSignal.timeout(10000),
+      signal: controller.signal,
     });
 
+    clearTimeout(timeout);
+
     const data = await response.json();
+
+    console.log("External response status:", response.status);
+    console.log("External response body:", data);
 
     if (!response.ok || !data.status || typeof data.data !== "number") {
       return NextResponse.json(
@@ -100,8 +110,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json(data, { status: 200 });
+    return NextResponse.json(
+      {
+        statusCode: 200,
+        status: true,
+        message: "Success",
+        data: data.data,
+      },
+      { status: 200 }
+    );
   } catch (error) {
+    console.error("Error in merchants/total endpoint:", error);
+
     return NextResponse.json(
       {
         statusCode: 500,
