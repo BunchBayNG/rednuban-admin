@@ -28,79 +28,174 @@ import {
 import { Filter, Search, ChevronLeft, ChevronRight, CalendarIcon } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@radix-ui/react-popover";
 import { Calendar } from "@/components/ui/calendar";
-import { useState } from "react";
-import { apiLogsData } from "@/lib/MockData";
+import { useState, useEffect } from "react";
 import View from "@/components/svg Icons/View";
 import Download from "@/components/svg Icons/Download";
 import { BsThreeDots } from "react-icons/bs";
 import ApiLogDetailsModal from "./ApiLogsDetailsModal";
+import Empty from "@/components/svg Icons/Empty";
+import Loader from "@/components/svg Icons/loader";
+
+interface ApiLog {
+  sN: number;
+  id: string;
+  merchantPrefix: string;
+  requestTimestamp: string;
+  responseTimestamp: string;
+  service: string;
+  responseStatus: number;
+  createdAt: string;
+  // Additional fields for modal compatibility
+  logId: string;
+  merchantCode: string;
+  timestamp: string;
+  user: string;
+  email: string;
+  transactionReference: string;
+  customerReference: string;
+  clientIP: string;
+  requestPayload: string;
+  responseBody: string;
+}
+
+interface ApiLogResponse {
+  statusCode: number;
+  status: boolean;
+  message: string;
+  data: {
+    totalElements: number;
+    totalPages: number;
+    size: number;
+    content: {
+      id: string;
+      merchantPrefix: string;
+      requestTimestamp: string;
+      responseTimestamp: string;
+      service: string;
+      responseStatus: number;
+      createdAt: string;
+    }[];
+    number: number;
+    first: boolean;
+    last: boolean;
+  };
+}
 
 export function ApiLogsTable() {
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState({
-    fromDate: undefined as Date | undefined,
-    toDate: undefined as Date | undefined,
-    status: "All",
-    sortBy: "default",
+    merchantOrgId: "",
+    startDate: "",
+    endDate: "",
+    status: "",
+    sortBy: "createdAt",
+    sortOrder: "DESC",
   });
+  const [apiLogs, setApiLogs] = useState<ApiLog[]>([]);
+  const [totalPages, setTotalPages] = useState(0);
+  const [, setTotalElements] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [selectedLog, setSelectedLog] = useState<{
-    sN: number;
-    logId: string;
-    merchantCode: string;
-    requestTimestamp: string;
-    responseTimestamp: string;
-    service: string;
-    responseStatus: number;
-    timestamp: string;
-    user: string;
-    email: string;
-    transactionReference: string;
-    customerReference: string;
-    clientIP: string;
-    requestPayload: string;
-    responseBody: string;
-  } | null>(null);
-  const itemsPerPage = 10;
-  const totalItems = apiLogsData.length;
+  const [selectedLog, setSelectedLog] = useState<ApiLog | null>(null);
 
-  const filteredData = apiLogsData.filter((item) => {
-    const matchesSearch = item.merchantCode.includes(searchTerm) || item.logId.includes(searchTerm) || item.user.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDate =
-      (!filter.fromDate || new Date(item.timestamp) >= filter.fromDate) &&
-      (!filter.toDate || new Date(item.timestamp) <= filter.toDate);
-    const matchesStatus =
-      filter.status === "All" ||
-      (filter.status === "200s" && item.responseStatus >= 200 && item.responseStatus < 300) ||
-      (filter.status === "400s" && item.responseStatus >= 400 && item.responseStatus < 500) ||
-      (filter.status === "500s" && item.responseStatus >= 500 && item.responseStatus < 600);
-    return matchesSearch && matchesDate && matchesStatus;
-  });
+  const fetchApiLogs = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params: Record<string, string> = {
+        page: currentPage.toString(),
+        size: "10",
+        sortBy: filter.sortBy || "createdAt",
+        sortOrder: filter.sortOrder || "DESC",
+      };
 
-  const sortedData = [...filteredData].sort((a, b) => {
-    switch (filter.sortBy) {
-      case "merchant-newest":
-        return b.merchantCode.localeCompare(a.merchantCode);
-      case "merchant-oldest":
-        return a.merchantCode.localeCompare(b.merchantCode);
-      case "request-newest":
-        return new Date(b.requestTimestamp).getTime() - new Date(a.requestTimestamp).getTime();
-      case "request-oldest":
-        return new Date(a.requestTimestamp).getTime() - new Date(b.requestTimestamp).getTime();
-      case "status-low-high":
-        return a.responseStatus - b.responseStatus;
-      case "status-high-low":
-        return b.responseStatus - a.responseStatus;
-      default:
-        return 0;
+      if (searchTerm) params.search = searchTerm;
+      if (filter.merchantOrgId) params.merchantOrgId = filter.merchantOrgId;
+      if (filter.startDate) params.startDate = filter.startDate;
+      if (filter.endDate) params.endDate = filter.endDate;
+      if (filter.status) params.status = filter.status;
+
+      const queryString = new URLSearchParams(params).toString();
+      console.log("Frontend Request URL:", `/api/api-logs?${queryString}`);
+      
+      const res = await fetch(`/api/reports/api-logs?${queryString}`);
+      const data: ApiLogResponse = await res.json();
+      console.log("API Response:", JSON.stringify(data, null, 2));
+
+      if (data.status) {
+        const mappedLogs = data.data.content.map((log, index) => ({
+          sN: data.data.number * 10 + index + 1,
+          id: log.id,
+          merchantPrefix: log.merchantPrefix || "",
+          requestTimestamp: log.requestTimestamp
+            ? new Date(log.requestTimestamp).toLocaleString("en-US", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "",
+          responseTimestamp: log.responseTimestamp
+            ? new Date(log.responseTimestamp).toLocaleString("en-US", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "",
+          service: log.service || "",
+          responseStatus: log.responseStatus || 0,
+          createdAt: log.createdAt
+            ? new Date(log.createdAt).toLocaleString("en-US", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "",
+          // Modal compatibility fields
+          logId: log.id,
+          merchantCode: log.merchantPrefix,
+          timestamp: log.createdAt
+            ? new Date(log.createdAt).toLocaleString("en-US", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "",
+          user: "System User", // Default value as API doesn't provide this
+          email: "system@api.com", // Default value as API doesn't provide this
+          transactionReference: "", // Default value as API doesn't provide this
+          customerReference: "", // Default value as API doesn't provide this
+          clientIP: "", // Default value as API doesn't provide this
+          requestPayload: "", // Default value as API doesn't provide this
+          responseBody: "", // Default value as API doesn't provide this
+        }));
+
+        setApiLogs(mappedLogs);
+        setTotalPages(data.data.totalPages);
+        setTotalElements(data.data.totalElements);
+      } else {
+        setError(data.message || "Failed to fetch API logs");
+      }
+    } catch (error) {
+      console.error("Error fetching API logs:", error);
+      setError("Failed to fetch API logs");
+    } finally {
+      setLoading(false);
     }
-  });
+  };
 
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedData = sortedData.slice(startIndex, endIndex);
+  useEffect(() => {
+    fetchApiLogs();
+  }, [currentPage, filter, searchTerm]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -109,28 +204,53 @@ export function ApiLogsTable() {
   const getPageNumbers = () => {
     const pages = [];
     if (totalPages <= 3) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
+      for (let i = 0; i < totalPages; i++) pages.push(i);
     } else {
-      pages.push(1);
-      if (currentPage > 3) pages.push(...[currentPage - 1, currentPage]);
-      else pages.push(2);
-      if (currentPage < totalPages - 1) pages.push("...");
-      pages.push(totalPages);
+      pages.push(0);
+      if (currentPage > 2) pages.push(currentPage - 1, currentPage);
+      else pages.push(1);
+      if (currentPage < totalPages - 2) pages.push("...");
+      pages.push(totalPages - 1);
     }
     return pages;
   };
 
-  const handleResetDate = () => setFilter((prev) => ({ ...prev, fromDate: undefined, toDate: undefined }));
-  const handleResetStatus = () => setFilter((prev) => ({ ...prev, status: "All" }));
-  const handleResetSort = () => setFilter((prev) => ({ ...prev, sortBy: "default" }));
-  const handleResetAll = () => setFilter({ fromDate: undefined, toDate: undefined, status: "All", sortBy: "default" });
+  const handleResetDate = () => setFilter((prev) => ({ ...prev, startDate: "", endDate: "" }));
+  const handleResetStatus = () => setFilter((prev) => ({ ...prev, status: "" }));
+  const handleResetSort = () => setFilter((prev) => ({ ...prev, sortBy: "createdAt", sortOrder: "DESC" }));
+  const handleResetAll = () => {
+    setFilter({
+      merchantOrgId: "",
+      startDate: "",
+      endDate: "",
+      status: "",
+      sortBy: "createdAt",
+      sortOrder: "DESC",
+    });
+    setSearchTerm("");
+  };
 
-  function DatePicker({ id, date, onSelect, placeholder }: { id: string; date: Date | undefined; onSelect: (date: Date | undefined) => void; placeholder: string }) {
+  const handleApplyFilters = () => {
+    setCurrentPage(0); // Reset to first page when applying filters
+    fetchApiLogs();
+  };
+
+  function DatePicker({
+    id,
+    date,
+    onSelect,
+    placeholder,
+  }: {
+    id: string;
+    date: string;
+    onSelect: (date: string) => void;
+    placeholder: string;
+  }) {
     const [open, setOpen] = useState(false);
-    const [month, setMonth] = useState<Date | undefined>(date);
+    const [month, setMonth] = useState<Date | undefined>(date ? new Date(date) : undefined);
 
     const handleSelect = (selectedDate: Date | undefined) => {
-      onSelect(selectedDate);
+      onSelect(selectedDate ? selectedDate.toISOString().split("T")[0] : "");
       if (selectedDate) setMonth(selectedDate);
       setOpen(false);
     };
@@ -144,14 +264,18 @@ export function ApiLogsTable() {
               variant="outline"
               className="w-full justify-start text-left font-normal pl-3 pr-10 py-2 border rounded-md text-sm bg-[#F8F8F8] dark:bg-gray-700"
             >
-              <span>{date ? date.toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" }) : placeholder}</span>
+              <span>
+                {date
+                  ? new Date(date).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" })
+                  : placeholder}
+              </span>
               <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0 z-30" align="start">
             <Calendar
               mode="single"
-              selected={date}
+              selected={date ? new Date(date) : undefined}
               onSelect={handleSelect}
               month={month}
               className="rounded-md border"
@@ -162,29 +286,14 @@ export function ApiLogsTable() {
     );
   }
 
-  const handleViewLog = (log: {
-    sN: number;
-    logId: string;
-    merchantCode: string;
-    requestTimestamp: string;
-    responseTimestamp: string;
-    service: string;
-    responseStatus: number;
-    timestamp: string;
-    user: string;
-    email: string;
-    transactionReference: string;
-    customerReference: string;
-    clientIP: string;
-    requestPayload: string;
-    responseBody: string;
-  }) => {
+  const handleViewLog = (log: ApiLog) => {
     setSelectedLog(log);
     setIsDetailsModalOpen(true);
   };
 
   return (
     <div className="w-full relative">
+      {error && <div className="text-red-500 text-center my-4">{error}</div>}
       <div className="flex justify-between items-center mb-4 space-x-4">
         <div className="flex items-center space-x-4">
           <DropdownMenu>
@@ -212,8 +321,8 @@ export function ApiLogsTable() {
                       </label>
                       <DatePicker
                         id="from-date"
-                        date={filter.fromDate}
-                        onSelect={(date) => setFilter((prev) => ({ ...prev, fromDate: date }))}
+                        date={filter.startDate}
+                        onSelect={(date) => setFilter((prev) => ({ ...prev, startDate: date }))}
                         placeholder="YY/MM/DD"
                       />
                     </div>
@@ -223,12 +332,30 @@ export function ApiLogsTable() {
                       </label>
                       <DatePicker
                         id="to-date"
-                        date={filter.toDate}
-                        onSelect={(date) => setFilter((prev) => ({ ...prev, toDate: date }))}
+                        date={filter.endDate}
+                        onSelect={(date) => setFilter((prev) => ({ ...prev, endDate: date }))}
                         placeholder="YY/MM/DD"
                       />
                     </div>
                   </div>
+                </div>
+                <div className="flex flex-col space-y-2">
+                  <div className="flex justify-between">
+                    <label className="text-sm">Merchant Org ID</label>
+                    <Button
+                      variant="link"
+                      className="text-red-500 p-0 h-auto"
+                      onClick={() => setFilter((prev) => ({ ...prev, merchantOrgId: "" }))}
+                    >
+                      Reset
+                    </Button>
+                  </div>
+                  <Input
+                    value={filter.merchantOrgId}
+                    onChange={(e) => setFilter((prev) => ({ ...prev, merchantOrgId: e.target.value }))}
+                    placeholder="Merchant Org ID"
+                    className="w-full bg-[#F8F8F8] dark:bg-gray-700 border-0 rounded"
+                  />
                 </div>
                 <div className="flex flex-col space-y-2">
                   <div className="flex justify-between">
@@ -238,20 +365,22 @@ export function ApiLogsTable() {
                     </Button>
                   </div>
                   <Select
-                    value={filter.sortBy}
-                    onValueChange={(value) => setFilter((prev) => ({ ...prev, sortBy: value }))}
+                    value={`${filter.sortBy}-${filter.sortOrder}`}
+                    onValueChange={(value) => {
+                      const [sortBy, sortOrder] = value.split("-");
+                      setFilter((prev) => ({ ...prev, sortBy, sortOrder }));
+                    }}
                   >
                     <SelectTrigger className="w-full bg-[#F8F8F8] dark:bg-gray-700 border-0 rounded">
-                      <SelectValue placeholder="Default" />
+                      <SelectValue placeholder="Sort By" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="default">Default</SelectItem>
-                      <SelectItem value="merchant-newest">Merchant code (Newest First)</SelectItem>
-                      <SelectItem value="merchant-oldest">Merchant code (Oldest First)</SelectItem>
-                      <SelectItem value="request-newest">Request Timestamp (Newest First)</SelectItem>
-                      <SelectItem value="request-oldest">Request Timestamp (Oldest First)</SelectItem>
-                      <SelectItem value="status-low-high">Response Status (Low to High)</SelectItem>
-                      <SelectItem value="status-high-low">Response Status (High to Low)</SelectItem>
+                      <SelectItem value="createdAt-DESC">Created At (Newest First)</SelectItem>
+                      <SelectItem value="createdAt-ASC">Created At (Oldest First)</SelectItem>
+                      <SelectItem value="requestTimestamp-DESC">Request Timestamp (Newest First)</SelectItem>
+                      <SelectItem value="requestTimestamp-ASC">Request Timestamp (Oldest First)</SelectItem>
+                      <SelectItem value="responseStatus-ASC">Response Status (Low to High)</SelectItem>
+                      <SelectItem value="responseStatus-DESC">Response Status (High to Low)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -270,10 +399,10 @@ export function ApiLogsTable() {
                       <SelectValue placeholder="All" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="All">All</SelectItem>
-                      <SelectItem value="200s">200s</SelectItem>
-                      <SelectItem value="400s">400s</SelectItem>
-                      <SelectItem value="500s">500s</SelectItem>
+                      <SelectItem value="">All</SelectItem>
+                      <SelectItem value="200">200s</SelectItem>
+                      <SelectItem value="400">400s</SelectItem>
+                      <SelectItem value="500">500s</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -281,7 +410,7 @@ export function ApiLogsTable() {
                   <Button variant="outline" onClick={handleResetAll}>
                     Reset All
                   </Button>
-                  <Button className="bg-red-500 text-white hover:bg-red-600" onClick={() => {}}>
+                  <Button className="bg-red-500 text-white hover:bg-red-600" onClick={handleApplyFilters}>
                     Apply Now
                   </Button>
                 </div>
@@ -303,7 +432,7 @@ export function ApiLogsTable() {
             variant="outline"
             size="icon"
             onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
+            disabled={currentPage === 0}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -318,7 +447,7 @@ export function ApiLogsTable() {
                   onClick={() => handlePageChange(Number(page))}
                   disabled={page === "..." || page === currentPage}
                 >
-                  {page}
+                  {Number(page) + 1}
                 </Button>
               )}
             </span>
@@ -327,7 +456,7 @@ export function ApiLogsTable() {
             variant="outline"
             size="icon"
             onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
+            disabled={currentPage >= totalPages - 1}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -337,12 +466,12 @@ export function ApiLogsTable() {
             onValueChange={(value) => handlePageChange(parseInt(value))}
           >
             <SelectTrigger className="w-[80px]">
-              <SelectValue placeholder={currentPage.toString()} />
+              <SelectValue placeholder={(currentPage + 1).toString()} />
             </SelectTrigger>
             <SelectContent>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              {Array.from({ length: totalPages }, (_, i) => i).map((page) => (
                 <SelectItem key={page} value={page.toString()}>
-                  {page}
+                  {page + 1}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -359,57 +488,83 @@ export function ApiLogsTable() {
               <TableHead>Response Timestamp</TableHead>
               <TableHead>Service</TableHead>
               <TableHead>Response Status</TableHead>
-              <TableHead>Timestamp</TableHead>
+              <TableHead>Created At</TableHead>
               <TableHead>Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedData.map((item) => (
-              <TableRow key={item.sN}>
-                <TableCell>{item.sN}</TableCell>
-                <TableCell>{item.merchantCode}</TableCell>
-                <TableCell>{item.requestTimestamp}</TableCell>
-                <TableCell>{item.responseTimestamp}</TableCell>
-                <TableCell>{item.service}</TableCell>
-                <TableCell>
-                  <span className="flex items-center">
-                    <span
-                      className="w-2 h-2 rounded-full mr-2"
-                      style={{
-                        backgroundColor:
-                          item.responseStatus >= 200 && item.responseStatus < 300 ? "#4CAF50" : // 200s (green)
-                          item.responseStatus >= 400 && item.responseStatus < 500 ? "#FF8C00" : // 400s (orange)
-                          item.responseStatus >= 500 && item.responseStatus < 600 ? "#FF4444" : "#000000", // 500s (red)
-                      }}
-                    />
-                    <span
-                      style={{
-                        color:
-                          item.responseStatus >= 200 && item.responseStatus < 300 ? "#4CAF50" : // 200s (green)
-                          item.responseStatus >= 400 && item.responseStatus < 500 ? "#FF8C00" : // 400s (orange)
-                          item.responseStatus >= 500 && item.responseStatus < 600 ? "#FF4444" : "#000000", // 500s (red)
-                      }}
-                    >
-                      {item.responseStatus}
-                    </span>
-                  </span>
-                </TableCell>
-                <TableCell>{item.timestamp}</TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <BsThreeDots className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem onClick={() => handleViewLog(item)}><View /> View</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => console.log("Download", item.sN)}><Download /> Download</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={8}>
+                  <div className="relative w-17 p-4 h-17 mx-auto my-5">
+                    <div className="absolute inset-0 border-4 border-transparent border-t-[#C80000] rounded-full animate-spin"></div>
+                    <div className="absolute inset-0 flex items-center m-3 justify-center">
+                      <Loader />
+                    </div>
+                  </div>
                 </TableCell>
               </TableRow>
-            ))}
+            ) : apiLogs.length > 0 ? (
+              apiLogs.map((item) => (
+                <TableRow key={item.sN}>
+                  <TableCell>{item.sN}</TableCell>
+                  <TableCell>{item.merchantPrefix}</TableCell>
+                  <TableCell>{item.requestTimestamp}</TableCell>
+                  <TableCell>{item.responseTimestamp}</TableCell>
+                  <TableCell>{item.service}</TableCell>
+                  <TableCell>
+                    <span className="flex items-center">
+                      <span
+                        className="w-2 h-2 rounded-full mr-2"
+                        style={{
+                          backgroundColor:
+                            item.responseStatus >= 200 && item.responseStatus < 300 ? "#4CAF50" :
+                            item.responseStatus >= 400 && item.responseStatus < 500 ? "#FF8C00" :
+                            item.responseStatus >= 500 && item.responseStatus < 600 ? "#FF4444" : "#000000",
+                        }}
+                      />
+                      <span
+                        style={{
+                          color:
+                            item.responseStatus >= 200 && item.responseStatus < 300 ? "#4CAF50" :
+                            item.responseStatus >= 400 && item.responseStatus < 500 ? "#FF8C00" :
+                            item.responseStatus >= 500 && item.responseStatus < 600 ? "#FF4444" : "#000000",
+                        }}
+                      >
+                        {item.responseStatus}
+                      </span>
+                    </span>
+                  </TableCell>
+                  <TableCell>{item.createdAt}</TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <BsThreeDots className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem onClick={() => handleViewLog(item)}>
+                          <View /> View
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => console.log("Download", item.sN)}>
+                          <Download /> Download
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={8}>
+                  <div className="text-center flex flex-col items-center gap-4 m-3 p-3">
+                    <Empty />
+                    <p className="text-muted-foreground">No API logs found</p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
@@ -418,7 +573,7 @@ export function ApiLogsTable() {
         onClose={() => setIsDetailsModalOpen(false)}
         log={selectedLog}
         setSelectedLog={setSelectedLog}
-        logs={apiLogsData}
+        logs={apiLogs}
       />
     </div>
   );
