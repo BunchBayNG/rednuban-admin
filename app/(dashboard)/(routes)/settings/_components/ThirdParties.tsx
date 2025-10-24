@@ -20,14 +20,13 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Filter, Search, ChevronLeft, ChevronRight, CalendarIcon, Download } from "lucide-react";
+import { Filter, Search, ChevronLeft, ChevronRight, CalendarIcon } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@radix-ui/react-popover";
 import { Calendar } from "@/components/ui/calendar";
 import { BsThreeDots } from "react-icons/bs";
 import { FiEye } from "react-icons/fi";
 import { TbEdit } from "react-icons/tb";
 import { TbTrash } from "react-icons/tb";
-import { ExportModal } from "../../dashboard/_components/ExportModal";
 import { LuUserPlus } from "react-icons/lu";
 import ThirdPartyDetailsModal from "./ThirdPartyDetailsModal";
 import AddThirdPartyModal from "./AddThirdPartyModal";
@@ -40,7 +39,6 @@ export default function ThirdParties() {
     toDate: undefined as Date | undefined,
     sortBy: "default",
   });
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedThirdParty, setSelectedThirdParty] = useState<number | null>(null);
   const [thirdParties, setThirdParties] = useState([
@@ -153,39 +151,6 @@ export default function ThirdParties() {
     );
   }
 
-  const handleExport = (data: {
-    dateRangeFrom: string;
-    dateRangeTo: string;
-    format: string;
-    fields: Record<string, boolean>;
-  }) => {
-    const exportData = thirdParties
-      .filter((party) => {
-        const fromDate = new Date(data.dateRangeFrom);
-        const toDate = new Date(data.dateRangeTo);
-        const partyDate = new Date(party.createdAt.replace(/(\d{2})\/(\d{2})\/(\d{4})/, "$3-$2-$1"));
-        return (!data.dateRangeFrom || !isNaN(fromDate.getTime()) && partyDate >= fromDate) &&
-               (!data.dateRangeTo || !isNaN(toDate.getTime()) && partyDate <= toDate);
-      })
-      .map((party) =>
-        Object.fromEntries(
-          Object.entries(party).filter(([key]) => data.fields[key])
-        )
-      );
-    console.log("Export data:", { ...data, exportData });
-    setIsExportModalOpen(false);
-  };
-
-  const fieldOptions = [
-    { label: "S/N", value: "id" },
-    { label: "Name", value: "name" },
-    { label: "Category", value: "category" },
-    { label: "Collections Account Name", value: "collectionsAccountName" },
-    { label: "Collections Account Number", value: "collectionsAccountNumber" },
-    { label: "Bank Name", value: "bankName" },
-    { label: "CreatedAt", value: "createdAt" },
-  ];
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleAddThirdParty = (newParty: any) => {
     setThirdParties((prev) => [...prev, newParty]);
@@ -283,9 +248,6 @@ export default function ThirdParties() {
         <div className="flex space-x-2">
           <Button variant="outline" onClick={() => setIsAddModalOpen(true)}>
             Add Third Party <LuUserPlus className="h-4 w-4" />
-          </Button>
-          <Button onClick={() => setIsExportModalOpen(true)}>
-            Export <Download className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -388,12 +350,6 @@ export default function ThirdParties() {
           </Select>
         </div>
       </div>
-      <ExportModal
-        isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
-        onExport={handleExport}
-        fieldOptions={fieldOptions}
-      />
       <ThirdPartyDetailsModal
         isOpen={selectedThirdParty !== null}
         onClose={() => setSelectedThirdParty(null)}
