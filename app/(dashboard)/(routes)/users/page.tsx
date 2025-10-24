@@ -24,16 +24,6 @@ export default function UserPage() {
     { label: "Action", value: "action" },
   ];
 
-  const handleExport = (data: {
-    dateRangeFrom: string;
-    dateRangeTo: string;
-    format: string;
-    fields: Record<string, boolean>;
-  }) => {
-    console.log("Export data:", data);
-    setIsExportModalOpen(false);
-  };
-
   return (
     <div className="min-h-screen mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="flex justify-between items-center mb-6">
@@ -64,7 +54,7 @@ export default function UserPage() {
       <ExportModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
-        onExport={handleExport}
+        endpointPrefix="users"
         fieldOptions={fieldOptions}
       />
       <AddUserModal
